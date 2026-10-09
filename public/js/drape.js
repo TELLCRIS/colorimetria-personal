@@ -52,7 +52,7 @@ const layer = document.createElement('canvas');
 // Tiñe la prenda detectada: cada píxel de ropa toma el color de prueba con la luz que tenía,
 // así se conservan pliegues y sombras. En comparación, cada mitad de la pantalla lleva su color.
 function drawGarment(ctx, w, h, frame, garment, { colorA, colorB, compare }, mirrored) {
-  const { w: gw, h: gh, mask, shade } = garment;
+  const { w: gw, h: gh, alpha, shade } = garment;
   layer.width = gw;
   layer.height = gh;
   const layerCtx = layer.getContext('2d');
@@ -63,14 +63,14 @@ function drawGarment(ctx, w, h, frame, garment, { colorA, colorB, compare }, mir
   for (let y = 0; y < gh; y++) {
     for (let x = 0; x < gw; x++) {
       const i = y * gw + x;
-      if (!mask[i]) continue;
+      if (!alpha[i]) continue;
       const screenX = mirrored ? gw - 1 - x : x;
       const color = compare && screenX >= gw / 2 ? b : a;
       const light = shade[i];
       out[i * 4] = Math.min(255, color[0] * light);
       out[i * 4 + 1] = Math.min(255, color[1] * light);
       out[i * 4 + 2] = Math.min(255, color[2] * light);
-      out[i * 4 + 3] = 255;
+      out[i * 4 + 3] = alpha[i]; // borde suavizado
     }
   }
   layerCtx.putImageData(image, 0, 0);

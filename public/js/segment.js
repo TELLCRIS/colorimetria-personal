@@ -11,6 +11,9 @@ const MAX_SIDE = 320; // resolución de trabajo de la máscara
 const MIN_SHARE = 0.02; // por debajo de esto no se considera que haya prenda visible
 const SHADE_MIN = 0.45;
 const SHADE_MAX = 1.45;
+const EDGE_RADIUS = 2; // píxeles de la máscara que se difuminan a cada lado del borde
+const EDGE_LOW = 0.3;
+const EDGE_HIGH = 0.8;
 
 let loading = null;
 let segmenter = null;
@@ -38,10 +41,48 @@ export function loadSegmenter() {
   return loading;
 }
 
+// Desenfoque de caja en una dirección (horizontal o vertical) con ventana deslizante.
+function boxBlur(src, dst, w, h, radius, horizontal) {
+  const lines = horizontal ? h : w;
+  const length = horizontal ? w : h;
+  const stride = horizontal ? 1 : w;
+  const size = radius * 2 + 1;
+  for (let line = 0; line < lines; line++) {
+    const start = horizontal ? line * w : line;
+    let sum = 0;
+    for (let k = -radius; k <= radius; k++) sum += src[start + Math.min(length - 1, Math.max(0, k)) * stride];
+    for (let p = 0; p < length; p++) {
+      dst[start + p * stride] = sum / size;
+      const leaving = Math.max(0, p - radius);
+      const entering = Math.min(length - 1, p + radius + 1);
+      sum += src[start + entering * stride] - src[start + leaving * stride];
+    }
+  }
+}
+
 /**
- * Localiza la prenda en un vídeo o un canvas. Devuelve { w, h, mask, shade } a baja resolución
- * (mask: 1 donde hay ropa; shade: luz relativa de cada píxel de ropa, para conservar pliegues y
- * sombras al teñir), o null si no se ve ropa suficiente.
+ * Convierte la máscara dura (0/1) en una opacidad con borde suave (0..255). El umbral desplaza
+ * el borde un poco hacia dentro de la prenda para que el color no invada la piel del cuello.
+ */
+function softEdge(mask, w, h) {
+  const a = Float32Array.from(mask);
+  const b = new Float32Array(mask.length);
+  for (let pass = 0; pass < 2; pass++) {
+    boxBlur(a, b, w, h, EDGE_RADIUS, true);
+    boxBlur(b, a, w, h, EDGE_RADIUS, false);
+  }
+  const alpha = new Uint8ClampedArray(mask.length);
+  for (let i = 0; i < a.length; i++) {
+    const t = Math.min(1, Math.max(0, (a[i] - EDGE_LOW) / (EDGE_HIGH - EDGE_LOW)));
+    alpha[i] = 255 * t * t * (3 - 2 * t);
+  }
+  return alpha;
+}
+
+/**
+ * Localiza la prenda en un vídeo o un canvas. Devuelve { w, h, mask, shade, alpha } a baja
+ * resolución (mask: 1 donde hay ropa; shade: luz relativa de cada píxel, para conservar pliegues
+ * y sombras al teñir; alpha: opacidad con el borde suavizado), o null si no se ve ropa suficiente.
  */
 export async function detectGarment(source) {
   await loadSegmenter();
@@ -67,11 +108,11 @@ export async function detectGarment(source) {
     let sum = 0;
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
-        if (labels[y * step * mw + x * step] !== CLOTHES) continue;
         const i = y * w + x;
         const light = (0.299 * pixels[i * 4] + 0.587 * pixels[i * 4 + 1] + 0.114 * pixels[i * 4 + 2]) / 255;
-        mask[i] = 1;
         shade[i] = light;
+        if (labels[y * step * mw + x * step] !== CLOTHES) continue;
+        mask[i] = 1;
         sum += light;
         count++;
       }
@@ -79,9 +120,9 @@ export async function detectGarment(source) {
     if (count < w * h * MIN_SHARE) return null;
     const average = sum / count || 1;
     for (let i = 0; i < shade.length; i++) {
-      if (mask[i]) shade[i] = Math.min(SHADE_MAX, Math.max(SHADE_MIN, shade[i] / average));
+      shade[i] = Math.min(SHADE_MAX, Math.max(SHADE_MIN, shade[i] / average));
     }
-    return { w, h, mask, shade };
+    return { w, h, mask, shade, alpha: softEdge(mask, w, h) };
   } finally {
     if (typeof result.close === 'function') result.close();
     else categories.close();
