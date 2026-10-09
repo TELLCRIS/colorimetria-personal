@@ -175,7 +175,8 @@ function currentSource() {
 // --- Teñido automático de la prenda ---
 const AUTO_KEY = 'colorimetria.drapeAuto';
 const LIVE_INTERVAL_MS = 70;
-const LOAD_TIMEOUT_MS = 30000;
+const LOAD_TIMEOUT_MS = 120000;
+const SLOW_MS = 250; // por encima de esto el vídeo en vivo no puede seguir el movimiento con soltura
 let garment = null; // máscara de la ropa detectada en la fuente visible, o null
 let garmentRun = 0; // invalida las detecciones en curso cuando cambia la fuente
 let garmentFailed = false; // el modelo no se pudo cargar: no se reintenta hasta volver a marcar la casilla
@@ -224,26 +225,41 @@ async function trackGarment() {
       const source = currentSource();
       if (!source || !$('stage').clientWidth) return; // sin imagen o pestaña oculta: se reintenta al redibujar
       let found;
+      let started = performance.now();
       try {
-        const { detectGarment } = await import('./segment.js');
-        // Si la descarga del modelo se atasca, no se deja al usuario esperando sin fin.
-        const giveUp = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), LOAD_TIMEOUT_MS));
-        found = await Promise.race([detectGarment(source.el), giveUp]);
-      } catch {
+        const { loadSegmenter, detectGarment } = await import('./segment.js');
+        // La primera vez se descargan unos 25 MB: con datos móviles puede tardar. Si se atasca,
+        // no se deja al usuario esperando sin fin.
+        let timer;
+        const giveUp = new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error('la descarga tardó demasiado')), LOAD_TIMEOUT_MS);
+        });
+        try {
+          await Promise.race([loadSegmenter(), giveUp]);
+        } finally {
+          clearTimeout(timer);
+        }
+        started = performance.now(); // solo cuenta el cálculo, no la descarga inicial
+        found = await detectGarment(source.el);
+      } catch (error) {
         if (run !== garmentRun) return;
         garmentFailed = true;
-        setGarment(null, 'No se pudo cargar el teñido automático (hace falta conexión a internet). Usa los controles de abajo, o desmarca y vuelve a marcar la casilla para reintentar.');
+        setGarment(null, `No se pudo preparar el teñido automático (${error?.message || 'error desconocido'}). Comprueba la conexión y desmarca y vuelve a marcar la casilla para reintentar, o usa los controles de abajo.`);
         return;
       }
+      const elapsed = performance.now() - started;
       if (run !== garmentRun) return;
       if (!source.live) garmentDone = true; // en una foto basta con una detección
       if (found) {
-        setGarment(found, 'Ropa detectada: se tiñe con el color de prueba. Con ropa clara y lisa el color se ve más fiel.');
+        setGarment(found, source.live && elapsed > SLOW_MS
+          ? 'Ropa detectada. En este dispositivo el vídeo en vivo actualiza el color despacio: para probar colores con fluidez, pulsa «Tomar foto».'
+          : 'Ropa detectada: se tiñe con el color de prueba. Con ropa clara y lisa el color se ve más fiel.');
       } else {
         setGarment(null, 'No se ve tu ropa en la imagen: aléjate un poco para que se vean los hombros, o usa la tela dibujada con los controles de abajo.');
       }
       if (!source.live) return;
-      await new Promise((resolve) => setTimeout(resolve, LIVE_INTERVAL_MS));
+      // En equipos lentos se deja respirar al navegador: la pausa crece con lo que tardó el cálculo.
+      await new Promise((resolve) => setTimeout(resolve, Math.max(LIVE_INTERVAL_MS, elapsed * 3)));
     }
   } finally {
     if (run === garmentRun) {
