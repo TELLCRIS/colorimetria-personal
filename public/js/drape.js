@@ -46,41 +46,55 @@ function manualPath(h, heightRatio, frame, neckRatio) {
   return { path, top, cx };
 }
 
-// Silueta de prenda sobre los hombros detectados (pose en proporciones de la imagen).
-function posePath(h, frame, pose) {
-  const left = frame.x;
-  const right = frame.x + frame.w;
-  const px = (nx) => frame.imgX + nx * frame.imgW;
-  const clampX = (x) => Math.min(right, Math.max(left, x));
-  const cx = clampX(px(pose.cx));
-  const neckHalf = pose.neckHalf * frame.imgW;
-  const shoulderY = Math.min(h * 0.97, pose.sy * h);
-  const top = Math.min(shoulderY, pose.top * h);
-  const lx = clampX(px(pose.lx));
-  const rx = clampX(px(pose.rx));
-  const neckL = Math.max(lx, cx - neckHalf);
-  const neckR = Math.min(rx, cx + neckHalf);
-  const dip = Math.min((h - top) * 0.55, neckHalf * 0.75);
-  // Más allá del hombro, la manga baja casi recta: la prenda cubre torso y brazos, no el fondo.
-  const sleeve = (rx - lx) * 0.16;
-  const armL = clampX(lx - sleeve);
-  const armR = clampX(rx + sleeve);
-  const path = new Path2D();
-  path.moveTo(armL, h);
-  path.lineTo(armL, Math.min(h, shoulderY + sleeve * 1.6));
-  path.quadraticCurveTo(armL, shoulderY, lx, shoulderY);
-  path.quadraticCurveTo((lx + neckL) / 2, shoulderY - (shoulderY - top) * 0.25, neckL, top);
-  path.bezierCurveTo(cx - neckHalf * 0.55, top + dip * 1.33, cx + neckHalf * 0.55, top + dip * 1.33, neckR, top);
-  path.quadraticCurveTo((rx + neckR) / 2, shoulderY - (shoulderY - top) * 0.25, rx, shoulderY);
-  path.quadraticCurveTo(armR, shoulderY, armR, Math.min(h, shoulderY + sleeve * 1.6));
-  path.lineTo(armR, h);
-  path.closePath();
-  return { path, top, cx };
+const hexToRgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+const layer = document.createElement('canvas');
+
+// Tiñe la prenda detectada: cada píxel de ropa toma el color de prueba con la luz que tenía,
+// así se conservan pliegues y sombras. En comparación, cada mitad de la pantalla lleva su color.
+function drawGarment(ctx, w, h, frame, garment, { colorA, colorB, compare }, mirrored) {
+  const { w: gw, h: gh, mask, shade } = garment;
+  layer.width = gw;
+  layer.height = gh;
+  const layerCtx = layer.getContext('2d');
+  const image = layerCtx.createImageData(gw, gh);
+  const out = image.data;
+  const a = hexToRgb(colorA);
+  const b = hexToRgb(colorB);
+  for (let y = 0; y < gh; y++) {
+    for (let x = 0; x < gw; x++) {
+      const i = y * gw + x;
+      if (!mask[i]) continue;
+      const screenX = mirrored ? gw - 1 - x : x;
+      const color = compare && screenX >= gw / 2 ? b : a;
+      const light = shade[i];
+      out[i * 4] = Math.min(255, color[0] * light);
+      out[i * 4 + 1] = Math.min(255, color[1] * light);
+      out[i * 4 + 2] = Math.min(255, color[2] * light);
+      out[i * 4 + 3] = 255;
+    }
+  }
+  layerCtx.putImageData(image, 0, 0);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(frame.x, 0, frame.w, h);
+  ctx.clip();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  if (mirrored) {
+    ctx.translate(w, 0);
+    ctx.scale(-1, 1);
+  }
+  ctx.drawImage(layer, frame.imgX, 0, frame.imgW, h);
+  ctx.restore();
 }
 
 /** Dibuja la tela en un contexto de w×h. Se usa igual en pantalla, en la captura y en el informe. */
-export function drawCloth(ctx, w, h, { colorA, colorB, compare, heightRatio, frame = { x: 0, w, imgX: 0, imgW: w }, neckRatio = DEFAULT_NECK, pose = null }) {
-  const { path, top, cx } = pose ? posePath(h, frame, pose) : manualPath(h, heightRatio, frame, neckRatio);
+export function drawCloth(ctx, w, h, { colorA, colorB, compare, heightRatio, frame = { x: 0, w, imgX: 0, imgW: w }, neckRatio = DEFAULT_NECK, garment = null, mirrored = false }) {
+  if (garment) {
+    drawGarment(ctx, w, h, frame, garment, { colorA, colorB, compare }, mirrored);
+    return;
+  }
+  const { path, top, cx } = manualPath(h, heightRatio, frame, neckRatio);
   ctx.save();
   ctx.clip(path);
   ctx.fillStyle = colorA;
@@ -158,77 +172,67 @@ function currentSource() {
   return null;
 }
 
-// --- Ajuste automático a los hombros ---
+// --- Teñido automático de la prenda ---
 const AUTO_KEY = 'colorimetria.drapeAuto';
-const LIVE_INTERVAL_MS = 120;
+const LIVE_INTERVAL_MS = 70;
 const LOAD_TIMEOUT_MS = 30000;
-let pose = null; // geometría detectada para la fuente visible, o null
-let poseRun = 0; // invalida las detecciones en curso cuando cambia la fuente
-let poseFailed = false; // el modelo no se pudo cargar: no se reintenta hasta volver a marcar la casilla
-let poseIdle = true; // no hay ninguna detección en marcha
-let poseDone = false; // la foto visible ya se analizó
+let garment = null; // máscara de la ropa detectada en la fuente visible, o null
+let garmentRun = 0; // invalida las detecciones en curso cuando cambia la fuente
+let garmentFailed = false; // el modelo no se pudo cargar: no se reintenta hasta volver a marcar la casilla
+let garmentIdle = true; // no hay ninguna detección en marcha
+let garmentDone = false; // la foto visible ya se analizó
 
-/** Hombros detectados para la fuente visible, o null si el ajuste es manual. */
-export function currentPose() {
-  return pose;
+/** Prenda detectada en la fuente visible, o null si se usa la tela dibujada con ajuste manual. */
+export function currentGarment() {
+  return garment;
 }
 
-function setPose(next, status) {
-  const changed = Boolean(pose) !== Boolean(next);
-  pose = next;
+function setGarment(next, status) {
+  const changed = Boolean(garment) !== Boolean(next);
+  garment = next;
   $('drape-auto-status').textContent = status;
-  $('drape-height').disabled = Boolean(pose);
-  $('drape-neck').disabled = Boolean(pose);
+  $('drape-height').disabled = Boolean(garment);
+  $('drape-neck').disabled = Boolean(garment);
   redraw();
-  if (changed || !camera.isOn) document.dispatchEvent(new CustomEvent('drape:pose'));
+  if (changed || !camera.isOn) document.dispatchEvent(new CustomEvent('drape:garment'));
 }
 
-// Suaviza el movimiento en vídeo para que la tela no tiemble.
-function blend(previous, next) {
-  if (!previous) return next;
-  const mixed = {};
-  for (const key of Object.keys(next)) mixed[key] = previous[key] * 0.6 + next[key] * 0.4;
-  return mixed;
-}
-
-async function trackPose() {
-  const run = ++poseRun;
-  poseIdle = false;
-  poseDone = false;
+async function trackGarment() {
+  const run = ++garmentRun;
+  garmentIdle = false;
+  garmentDone = false;
   try {
-    if (!$('drape-auto').checked) { setPose(null, ''); return; }
-    if (poseFailed) return;
-    if (!currentSource()) { setPose(null, 'Activa la cámara o sube una foto para ajustar la tela a tus hombros.'); return; }
-    if (!pose) $('drape-auto-status').textContent = 'Buscando tus hombros…';
-    let first = true;
-    while (run === poseRun) {
+    if (!$('drape-auto').checked) { setGarment(null, ''); return; }
+    if (garmentFailed) return;
+    if (!currentSource()) { setGarment(null, 'Activa la cámara o sube una foto para teñir tu ropa con el color de prueba.'); return; }
+    if (!garment) $('drape-auto-status').textContent = 'Buscando tu ropa…';
+    while (run === garmentRun) {
       const source = currentSource();
       if (!source || !$('stage').clientWidth) return; // sin imagen o pestaña oculta: se reintenta al redibujar
       let found;
       try {
-        const { detectPose } = await import('./pose.js');
+        const { detectGarment } = await import('./segment.js');
         // Si la descarga del modelo se atasca, no se deja al usuario esperando sin fin.
         const giveUp = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), LOAD_TIMEOUT_MS));
-        found = await Promise.race([detectPose(source.el, source.sw, source.sh, source.mirrored), giveUp]);
+        found = await Promise.race([detectGarment(source.el), giveUp]);
       } catch {
-        if (run !== poseRun) return;
-        poseFailed = true;
-        setPose(null, 'No se pudo cargar el ajuste automático (hace falta conexión a internet). Usa los controles de abajo, o desmarca y vuelve a marcar la casilla para reintentar.');
+        if (run !== garmentRun) return;
+        garmentFailed = true;
+        setGarment(null, 'No se pudo cargar el teñido automático (hace falta conexión a internet). Usa los controles de abajo, o desmarca y vuelve a marcar la casilla para reintentar.');
         return;
       }
-      if (run !== poseRun) return;
-      if (!source.live) poseDone = true; // en una foto basta con una detección
+      if (run !== garmentRun) return;
+      if (!source.live) garmentDone = true; // en una foto basta con una detección
       if (found) {
-        setPose(source.live && !first ? blend(pose, found) : found, 'Hombros detectados: la tela se ajusta sola.');
+        setGarment(found, 'Ropa detectada: se tiñe con el color de prueba. Con ropa clara y lisa el color se ve más fiel.');
       } else {
-        setPose(null, 'No se ven bien los hombros: aléjate un poco o ajusta la tela con los controles de abajo.');
+        setGarment(null, 'No se ve tu ropa en la imagen: aléjate un poco para que se vean los hombros, o usa la tela dibujada con los controles de abajo.');
       }
-      first = false;
       if (!source.live) return;
       await new Promise((resolve) => setTimeout(resolve, LIVE_INTERVAL_MS));
     }
   } finally {
-    if (run === poseRun) poseIdle = true;
+    if (run === garmentRun) garmentIdle = true;
   }
 }
 
@@ -281,7 +285,7 @@ export function redraw() {
 
   if (!cssW || !cssH) return; // pestaña oculta: se redibuja al volver a mostrarse
   // Si la detección quedó pendiente (la vista estaba oculta), se retoma ahora.
-  if (poseIdle && !poseDone && !poseFailed && $('drape-auto').checked && currentSource()) trackPose();
+  if (garmentIdle && !garmentDone && !garmentFailed && $('drape-auto').checked && currentSource()) trackGarment();
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = Math.round(cssW * dpr);
   const h = Math.round(cssH * dpr);
@@ -292,12 +296,13 @@ export function redraw() {
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, w, h);
   const source = currentSource();
-  canvas.dataset.auto = String(Boolean(pose && source));
+  canvas.dataset.auto = String(Boolean(garment && source));
   if (colorA) {
     drawCloth(ctx, w, h, {
       ...options,
       frame: source ? sourceFrame(source.sw, source.sh, w, h) : undefined,
-      pose: source ? pose : null,
+      garment: source ? garment : null,
+      mirrored: Boolean(source?.mirrored),
     });
   }
 }
@@ -325,7 +330,8 @@ async function capture() {
   drawCloth(ctx, CAPTURE_W, CAPTURE_H, {
     ...options,
     frame: source ? sourceFrame(source.sw, source.sh, CAPTURE_W, CAPTURE_H) : undefined,
-    pose: source ? pose : null,
+    garment: source ? garment : null,
+    mirrored: Boolean(source?.mirrored),
   });
 
   const blob = await canvasToBlob(canvas);
@@ -348,7 +354,7 @@ export function initDrape() {
   $('drape-height').addEventListener('input', redraw);
   $('drape-neck').addEventListener('input', redraw);
   // La tela se ciñe a la imagen: hay que redibujar cuando cambia la fuente o su tamaño.
-  const sourceChanged = () => { redraw(); trackPose(); };
+  const sourceChanged = () => { redraw(); trackGarment(); };
   camera.video.addEventListener('loadedmetadata', sourceChanged);
   camera.video.addEventListener('resize', redraw);
   photo.onChange(sourceChanged);
@@ -358,8 +364,8 @@ export function initDrape() {
   try { auto.checked = localStorage.getItem(AUTO_KEY) !== 'off'; } catch { /* sin almacenamiento: queda activado */ }
   auto.addEventListener('change', () => {
     try { localStorage.setItem(AUTO_KEY, auto.checked ? 'on' : 'off'); } catch { /* preferencia no guardada */ }
-    poseFailed = false;
-    trackPose();
+    garmentFailed = false;
+    trackGarment();
   });
   $('capture').addEventListener('click', () => capture().catch(showError));
 
@@ -386,7 +392,7 @@ export function initDrape() {
   window.addEventListener('resize', redraw);
   window.addEventListener('orientationchange', () => setTimeout(redraw, 150));
   const sync = () => { syncCompareControls(); redraw(); };
-  on('session', trackPose);
+  on('session', trackGarment);
   on('selection', sync);
   on('session', sync);
 }

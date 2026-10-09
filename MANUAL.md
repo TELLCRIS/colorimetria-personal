@@ -60,7 +60,7 @@ Tómalo como una pista para saber por qué colores empezar. La cámara altera lo
 
 En **2. Elige un color para probar** toca cualquier color: aparece como una tela debajo de tu rostro.
 
-- **Ajustar la tela a mis hombros automáticamente**: activado de entrada. La aplicación localiza tus hombros y tu cuello y coloca la tela sola; con la cámara en vivo te sigue si te mueves. Necesita conexión a internet la primera vez, para descargar el detector; tu imagen se analiza en tu dispositivo y no se envía. Si no te encuentra (muy cerca, de perfil o con poca luz), usa los dos controles siguientes.
+- **Teñir mi ropa con el color de prueba (automático)**: activado de entrada. La aplicación reconoce la ropa que llevas puesta y la tiñe con el color elegido, conservando pliegues y sombras; con la cámara en vivo te sigue si te mueves. Funciona mejor con una prenda clara y lisa (blanca, crema o gris claro) y con los hombros a la vista. Necesita conexión a internet la primera vez, para descargar el detector; tu imagen se analiza en tu dispositivo y no se envía. Si no reconoce tu ropa, o desmarcas la casilla, se usa una tela dibujada que colocas con los dos controles siguientes.
 - **Altura de la tela**: sube o baja la tela hasta que quede justo bajo la barbilla.
 - **Ancho del cuello**: abre o cierra el escote hasta que coincida con tu cuello y la tela caiga sobre tus hombros.
 - **Comparar dos colores lado a lado**: marca esta casilla para ver un color en cada mitad y decidir entre ambos.
