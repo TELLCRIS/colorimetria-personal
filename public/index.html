@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f6f2ed">
-<title>Probador de colorimetría personal</title>
+<title>Colorimetría</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="css/styles.css">
 <link rel="stylesheet" href="css/print.css" media="print">
@@ -155,6 +155,11 @@
         <section class="card adjust-card" aria-labelledby="adjust-title">
           <h2 id="adjust-title">Tela virtual</h2>
           <div id="drape-label" class="drape-label" data-testid="drape-label" aria-live="polite"></div>
+          <label class="check">
+            <input type="checkbox" id="drape-auto" data-testid="drape-auto" checked>
+            <span>Ajustar la tela a mis hombros automáticamente</span>
+          </label>
+          <p id="drape-auto-status" class="note" data-testid="drape-auto-status" aria-live="polite"></p>
           <div class="field range-field">
             <label for="drape-height">Altura de la tela</label>
             <input id="drape-height" type="range" min="15" max="65" step="1" value="34" data-testid="drape-height">

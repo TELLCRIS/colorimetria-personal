@@ -50,7 +50,7 @@ function renderSessionHeader() {
     `${plural(analysis?.ratedCount ?? 0, 'color valorado', 'colores valorados')} · Creada el ${formatDate(session.createdAt)}`;
   $('session-notes-view').textContent = session.notes ?? '';
   $('session-notes-view').hidden = !session.notes;
-  document.title = `${session.name} · Colorimetría personal`;
+  document.title = 'Colorimetría';
 }
 
 async function showHistory() {
@@ -59,7 +59,7 @@ async function showHistory() {
   photo.unload();
   clearSession();
   remembered.clear();
-  document.title = 'Probador de colorimetría personal';
+  document.title = 'Colorimetría';
   showView('history');
   await loadHistory();
 }
