@@ -1,0 +1,28 @@
+/* Informe imprimible: con una sesión abierta solo se imprime el informe. */
+@page{margin:16mm}
+body{background:#fff;font-size:11.5pt}
+.skip-link,.site-footer,.toast,dialog{display:none !important}
+main,.site-header{max-width:none;padding:0}
+
+body[data-view="session"] .site-header,
+body[data-view="session"] .session-header,
+body[data-view="session"] #panel-try,
+body[data-view="session"] #panel-results,
+body[data-view="session"] .report-actions,
+body[data-view="session"] .report button{display:none !important}
+body[data-view="session"] #panel-report{display:block !important}
+
+.report{border:0;box-shadow:none;padding:0;margin:0;background:#fff}
+.report h3,.report h4{break-after:avoid}
+.report tr,.report .color-chip,.report .disclaimer,.report .drape-cell,.report .agreement{break-inside:avoid}
+.report .chips{grid-template-columns:repeat(4,1fr)}
+.report .disclaimer,.report .agreement{border:1px solid #bbb;background:#fff}
+.report .auto-estimate{background:#fff}
+/* Prueba de drapeado: 4 por fila, cada celda entera en una página */
+.report .drape-grid{grid-template-columns:repeat(4,1fr);gap:6mm 4mm}
+.report .drape-cell{border:1px solid #bbb}
+.report .drape-cell img{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.table-wrap{overflow:visible;background:none}
+.report .table-hint{display:none}
+/* La ficha final tiene su propia descarga en PDF: aquí se imprime el informe detallado */
+.report .ficha{display:none}

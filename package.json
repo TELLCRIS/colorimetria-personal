@@ -1,0 +1,20 @@
+{
+  "name": "sistema-colorimetria",
+  "version": "2.0.0",
+  "description": "Sitio estático de colorimetría personal: prueba colores junto al rostro y estima tu estación. Todo se guarda en el navegador.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node tools/serve.js",
+    "test": "node --test \"tests/unit/**/*.test.js\"",
+    "test:e2e": "playwright test --config tests/e2e/playwright.config.js",
+    "test:all": "node tests/run-all.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.0",
+    "pdfjs-dist": "^6.4.299"
+  }
+}

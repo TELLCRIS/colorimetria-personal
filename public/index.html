@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f6f2ed">
+<title>Probador de colorimetría personal</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/print.css" media="print">
+</head>
+<body data-view="loading">
+<a class="skip-link" href="#main">Saltar al contenido</a>
+
+<header class="site-header">
+  <h1>Probador de colorimetría personal</h1>
+  <p class="muted">Prueba colores junto al rostro con tu cámara o una foto y registra cuáles te favorecen. Es una guía comparativa, no un diagnóstico automático de estación.</p>
+</header>
+
+<main id="main" tabindex="-1">
+
+  <!-- Carga inicial -->
+  <section id="view-loading" class="card state" data-testid="app-loading" aria-live="polite">
+    <p>Cargando…</p>
+  </section>
+
+  <!-- Historial -->
+  <section id="view-history" data-testid="history-view" aria-labelledby="history-title" hidden>
+    <div class="layout">
+      <div class="card">
+        <h2>Nueva sesión</h2>
+        <p class="muted">Cada sesión guarda tus valoraciones en este navegador y en este dispositivo para que puedas retomarlas o compararlas más adelante. No se envía nada a ningún servidor.</p>
+        <form id="session-form" class="form" novalidate>
+          <div class="field">
+            <label for="session-name">Nombre de la sesión</label>
+            <input id="session-name" name="name" type="text" maxlength="80" required autocomplete="off"
+                   placeholder="Ej.: Luz de mañana junto a la ventana" data-testid="session-name-input"
+                   aria-describedby="session-form-error">
+          </div>
+          <div class="field">
+            <label for="session-notes">Notas <span class="muted">(opcional)</span></label>
+            <textarea id="session-notes" name="notes" rows="3" maxlength="1000" data-testid="session-notes-input"
+                      placeholder="Luz, hora, si llevas maquillaje…"></textarea>
+          </div>
+          <p id="session-form-error" class="form-error" data-testid="session-form-error" role="alert" hidden></p>
+          <div class="controls">
+            <button type="submit" class="primary" data-testid="new-session-button">Crear sesión</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2 id="history-title">Sesiones anteriores</h2>
+        <p id="history-status" class="muted" data-testid="history-status" aria-live="polite"></p>
+        <button type="button" id="history-retry" data-testid="history-retry" hidden>Reintentar</button>
+        <ul id="session-list" class="session-list" data-testid="session-list"></ul>
+      </div>
+
+      <div class="card backup-card">
+        <h2>Copia de seguridad</h2>
+        <p class="muted">Tus sesiones, valoraciones y fotos se guardan solo en este navegador. «Guardar copia» descarga un archivo que puedes conservar o usar para pasar tus datos a otro dispositivo (por ejemplo, del ordenador al teléfono): ábrelo allí con «Restaurar copia». Restaurar añade las sesiones de la copia sin tocar las que ya tengas.</p>
+        <label class="check">
+          <input type="checkbox" id="backup-include-photos" data-testid="backup-include-photos" checked>
+          <span>Incluir las fotos en la copia</span>
+        </label>
+        <div class="controls">
+          <button type="button" id="backup-save" data-testid="backup-save">Guardar copia</button>
+          <button type="button" id="backup-restore" data-testid="backup-restore">Restaurar copia</button>
+          <input type="file" id="backup-file" class="sr-only" accept=".json,application/json" tabindex="-1"
+                 aria-label="Archivo de copia de seguridad" data-testid="backup-file-input">
+        </div>
+        <p id="backup-status" class="backup-status" data-testid="backup-status" role="status" aria-live="polite" hidden></p>
+        <p id="storage-notice" class="note" data-testid="storage-notice" hidden></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sesión abierta -->
+  <section id="view-session" data-testid="session-view" aria-labelledby="session-title" hidden>
+    <div class="session-header card">
+      <div class="session-heading">
+        <button type="button" id="back-to-history" data-testid="back-to-history" aria-label="Volver al historial">←<span class="wide-only"> Historial</span></button>
+        <div class="session-titles">
+          <h2 id="session-title" data-testid="session-title"></h2>
+          <p id="session-meta" class="muted" data-testid="session-meta"></p>
+        </div>
+        <button type="button" id="session-edit" data-testid="session-edit-button" aria-label="Renombrar la sesión o editar sus notas"><span class="wide-only">Renombrar / notas</span><span class="narrow-only">Editar</span></button>
+      </div>
+      <p id="session-notes-view" class="session-notes" data-testid="session-notes" hidden></p>
+      <nav class="tabs" aria-label="Secciones de la sesión">
+        <button type="button" class="tab" data-tab="try" data-testid="tab-try">Probar colores</button>
+        <button type="button" class="tab" data-tab="results" data-testid="tab-results">Resultados</button>
+        <button type="button" class="tab" data-tab="report" data-testid="report-button">Informe</button>
+      </nav>
+    </div>
+
+    <!-- Probar -->
+    <div id="panel-try" class="panel try" data-testid="panel-try">
+      <div class="try-left">
+        <!-- Escenario: se queda fijo arriba mientras se elige color y se valora -->
+        <div class="stage-wrap" id="stage-wrap">
+          <div class="stage" id="stage" data-testid="drape-stage" data-source="none">
+            <video id="video" autoplay playsinline muted hidden></video>
+            <canvas id="photo-canvas" data-testid="photo-canvas" role="img" aria-label="Tu foto" hidden></canvas>
+            <p id="stage-placeholder" class="stage-placeholder" data-testid="camera-status" aria-live="polite"></p>
+            <canvas id="drape-canvas" data-testid="drape-canvas" role="img" aria-label="Tela virtual del color elegido"></canvas>
+          </div>
+        </div>
+
+        <section class="card source-card" aria-labelledby="source-title">
+          <h2 id="source-title">1. Tu imagen: cámara o foto</h2>
+          <p id="camera-insecure" class="notice" data-testid="camera-insecure" role="note" hidden></p>
+          <div class="controls">
+            <button type="button" id="camera-start" class="primary" data-testid="camera-start">Activar cámara</button>
+            <button type="button" id="camera-stop" data-testid="camera-stop" disabled>Apagar cámara</button>
+            <button type="button" id="camera-switch" data-testid="camera-switch" hidden>Cambiar de cámara</button>
+            <button type="button" id="camera-mirror" data-testid="camera-mirror" aria-pressed="true">Voltear vista</button>
+            <button type="button" id="photo-take" data-testid="photo-take" disabled>Tomar foto</button>
+            <button type="button" id="photo-upload" data-testid="photo-upload">Subir foto</button>
+            <button type="button" id="photo-remove" class="danger" data-testid="photo-remove" hidden>Quitar foto</button>
+            <input type="file" id="photo-file" class="sr-only" accept="image/*" tabindex="-1"
+                   aria-label="Subir foto desde el dispositivo" data-testid="photo-file-input">
+          </div>
+          <p id="photo-status" class="note" data-testid="photo-status" aria-live="polite"></p>
+
+          <!-- Análisis por rasgos -->
+          <div class="controls">
+            <button type="button" id="analyze-start" data-testid="analyze-start" disabled>Analizar mi rostro</button>
+            <button type="button" id="analyze-clear" data-testid="analyze-clear" hidden>Quitar estimación</button>
+          </div>
+          <p id="analyze-hint" class="note" data-testid="analyze-hint"></p>
+          <section id="analyze-panel" class="analyze-panel" data-testid="analyze-panel" aria-labelledby="analyze-title" hidden>
+            <h3 id="analyze-title">Analizar mi rostro</h3>
+            <p id="analyze-instruction" class="analyze-instruction" data-testid="analyze-instruction" aria-live="polite"></p>
+            <div class="analyze-stage" id="analyze-stage">
+              <canvas id="analyze-canvas" data-testid="analyze-canvas" tabindex="0" role="application"
+                      aria-label="Tu foto: elige el punto de muestra" aria-describedby="analyze-keys"></canvas>
+              <canvas id="analyze-loupe" class="loupe" data-testid="analyze-loupe" width="240" height="240" aria-hidden="true" hidden></canvas>
+            </div>
+            <p id="analyze-keys" class="note">Con el dedo o el ratón: mantén pulsado, arrastra hasta que la lupa muestre la zona y suelta para tomar la muestra. Con teclado: enfoca la imagen, mueve la cruz con las flechas (Mayús para ir más rápido) y pulsa Intro o Espacio.</p>
+            <ol id="feature-list" class="feature-list" data-testid="feature-list"></ol>
+            <p id="analyze-status" class="sr-only" data-testid="analyze-status" aria-live="polite"></p>
+            <p id="analyze-error" class="form-error" data-testid="analyze-error" role="alert" hidden></p>
+            <div class="controls">
+              <button type="button" id="analyze-confirm" class="primary" data-testid="analyze-confirm" disabled>Confirmar y estimar</button>
+              <button type="button" id="analyze-skip" data-testid="analyze-skip">Omitir este paso</button>
+              <button type="button" id="analyze-cancel" data-testid="analyze-cancel">Cancelar</button>
+            </div>
+            <p class="note">La estimación es orientativa y depende mucho de la luz. De la foto solo se guardan, en este navegador, los tres colores de muestra.</p>
+          </section>
+
+          <p class="note" data-testid="privacy-note">La imagen de la cámara no se envía ni se graba. Si tomas o subes una foto, se guarda solo en este navegador y en este dispositivo, y se borra al quitarla o al borrar la sesión. La cámara en vivo necesita HTTPS o localhost.</p>
+        </section>
+
+        <section class="card adjust-card" aria-labelledby="adjust-title">
+          <h2 id="adjust-title">Tela virtual</h2>
+          <div id="drape-label" class="drape-label" data-testid="drape-label" aria-live="polite"></div>
+          <div class="field range-field">
+            <label for="drape-height">Altura de la tela</label>
+            <input id="drape-height" type="range" min="15" max="65" step="1" value="34" data-testid="drape-height">
+          </div>
+          <div class="compare">
+            <label class="check">
+              <input type="checkbox" id="compare-toggle" data-testid="compare-toggle">
+              <span>Comparar dos colores lado a lado</span>
+            </label>
+            <fieldset id="compare-slots" class="slots" data-testid="compare-slots" hidden>
+              <legend>La muestra que elijas se coloca en:</legend>
+              <label class="check"><input type="radio" name="compare-slot" value="a" data-testid="compare-slot-a" checked> <span>Mitad izquierda</span></label>
+              <label class="check"><input type="radio" name="compare-slot" value="b" data-testid="compare-slot-b"> <span>Mitad derecha</span></label>
+            </fieldset>
+          </div>
+          <div class="controls">
+            <button type="button" id="capture" data-testid="capture-button">Capturar con tela (PNG)</button>
+          </div>
+          <p class="note">La captura se descarga solo en tu dispositivo. La tela virtual es una aproximación: si puedes, sujeta además una prenda real del color elegido justo debajo del rostro. Mira la piel, las sombras bajo los ojos y cómo destacan tus ojos; no juzgues solo si te gusta el color.</p>
+        </section>
+      </div>
+
+      <div class="try-right">
+        <section class="card my-palette" data-testid="my-palette" aria-labelledby="my-palette-title">
+          <h2 id="my-palette-title">Mi paleta</h2>
+          <p id="my-palette-empty" class="muted" data-testid="my-palette-empty">Se irá llenando sola: los colores que valores con un 60 % o más entran en «Me favorecen» y los de menos del 40 % en «Mejor evitar».</p>
+          <p id="my-palette-status" class="sr-only" data-testid="my-palette-status" aria-live="polite"></p>
+          <div id="my-palette-good-group" class="mp-group" hidden>
+            <h3 id="my-palette-good-title">Me favorecen</h3>
+            <ul id="my-palette-good" class="mp-strip" data-testid="my-palette-good" aria-labelledby="my-palette-good-title"></ul>
+          </div>
+          <div id="my-palette-avoid-group" class="mp-group" hidden>
+            <h3 id="my-palette-avoid-title">Mejor evitar</h3>
+            <ul id="my-palette-avoid" class="mp-strip" data-testid="my-palette-avoid" aria-labelledby="my-palette-avoid-title"></ul>
+          </div>
+        </section>
+
+        <section class="card palette-card" aria-labelledby="palette-title">
+          <h2 id="palette-title">2. Elige un color para probar</h2>
+          <div class="filters">
+            <div class="field">
+              <label for="filter-undertone">Subtono</label>
+              <select id="filter-undertone" data-testid="filter-undertone"></select>
+            </div>
+            <div class="field">
+              <label for="filter-depth">Profundidad</label>
+              <select id="filter-depth" data-testid="filter-depth"></select>
+            </div>
+            <div class="field">
+              <label for="filter-season">Estación</label>
+              <select id="filter-season" data-testid="filter-season"></select>
+            </div>
+          </div>
+          <label class="check">
+            <input type="checkbox" id="filter-suggested" data-testid="filter-suggested" disabled>
+            <span id="filter-suggested-label">Solo los colores sugeridos por el análisis del rostro</span>
+          </label>
+          <p id="palette-status" class="muted" data-testid="palette-status" aria-live="polite"></p>
+          <div id="swatches" class="swatches" data-testid="swatches"></div>
+        </section>
+
+        <section class="card rating-card" aria-labelledby="rating-title">
+          <h2 id="rating-title">3. Evalúa cómo te queda</h2>
+          <p class="muted rating-help">Con cada color, puntúa el efecto que observas. Usa siempre la misma luz, distancia y exposición.</p>
+          <div id="rating-current" class="rating-current" data-testid="rating-current"></div>
+          <form id="rating-form" class="ratings" novalidate>
+            <div class="rating-grid">
+              <div class="ratingrow">
+                <label for="rating-even">La piel se ve más uniforme</label>
+                <select id="rating-even" data-testid="rating-even" data-criterion="even"></select>
+              </div>
+              <div class="ratingrow">
+                <label for="rating-eyes">Resalta mis ojos</label>
+                <select id="rating-eyes" data-testid="rating-eyes" data-criterion="eyes"></select>
+              </div>
+              <div class="ratingrow">
+                <label for="rating-shadows">Reduce sombras/rojeces</label>
+                <select id="rating-shadows" data-testid="rating-shadows" data-criterion="shadows"></select>
+              </div>
+              <div class="ratingrow">
+                <label for="rating-harmony">Armoniza con mis rasgos</label>
+                <select id="rating-harmony" data-testid="rating-harmony" data-criterion="harmony"></select>
+              </div>
+            </div>
+            <div class="controls">
+              <button type="submit" class="primary" data-testid="rating-save">Guardar puntuación</button>
+              <button type="button" id="rating-save-next" data-testid="rating-save-next">Guardar y siguiente</button>
+              <button type="button" id="rating-next" data-testid="rating-next" aria-keyshortcuts="Alt+N" title="Atajo: Alt + N">Siguiente sin valorar</button>
+              <button type="button" id="rating-delete" class="danger" data-testid="rating-delete" disabled>Borrar valoración</button>
+            </div>
+          </form>
+          <div id="rating-result" class="result" data-testid="rating-result" aria-live="polite"></div>
+        </section>
+      </div>
+
+      <section class="card howto">
+        <h2>Cómo interpretar los resultados</h2>
+        <div class="two">
+          <div><strong>Si predominan cálidos</strong><p class="muted">Terracota, óxido, oliva, camel y chocolate pueden apuntar hacia una paleta de otoño. Si los cálidos intensos destacan, compara Otoño Cálido; si predominan los oscuros, Otoño Profundo.</p></div>
+          <div><strong>Si predominan fríos profundos</strong><p class="muted">Cobalto, fucsia frío, ciruela y negro pueden justificar comparar Invierno Profundo. Un único color ganador no basta para determinar una estación.</p></div>
+        </div>
+        <p class="footer">Importante: la cámara cambia automáticamente balance de blancos, exposición y contraste. Por eso la estación sugerida se basa en tu evaluación visual, y la estimación automática a partir de la foto es solo un punto de partida orientativo. Para una prueba más fiable, usa telas reales, luz diurna indirecta y evita maquillaje, filtros y luces de colores.</p>
+      </section>
+    </div>
+
+    <!-- Resultados -->
+    <div id="panel-results" class="panel" data-testid="panel-results" hidden>
+      <div class="layout">
+        <div class="column">
+          <section class="card" aria-labelledby="suggested-title">
+            <p class="eyebrow">Según tus valoraciones</p>
+            <h2 id="suggested-title">Estación sugerida</h2>
+            <div id="season-suggested" class="result" data-testid="season-suggested" aria-live="polite"></div>
+            <ul id="analysis-messages" class="messages" data-testid="analysis-messages"></ul>
+            <p class="note">Los resultados reflejan tus observaciones, no una clasificación automática. Compara varios colores de cada familia; no concluyas por el color con la puntuación máxima si solo has probado pocos.</p>
+          </section>
+          <section class="card auto-card" aria-labelledby="auto-title">
+            <p class="eyebrow">Según la foto · orientativa</p>
+            <h2 id="auto-title">Estimación automática</h2>
+            <div id="auto-estimate" class="auto-estimate" data-testid="auto-estimate" aria-live="polite"></div>
+          </section>
+          <section class="card" aria-labelledby="palettes-title">
+            <h2 id="palettes-title">Colores recomendados y a evitar</h2>
+            <h3>Recomendados</h3>
+            <ul id="recommended-list" class="chips" data-testid="recommended-list"></ul>
+            <h3>A evitar</h3>
+            <ul id="avoid-list" class="chips" data-testid="avoid-list"></ul>
+            <p id="avoid-more" class="muted" data-testid="avoid-more" hidden></p>
+          </section>
+          <section class="card" aria-labelledby="axes-title">
+            <h2 id="axes-title">Tus ejes</h2>
+            <div id="axes" class="axes" data-testid="axes"></div>
+          </section>
+        </div>
+        <div class="column">
+          <section class="card" aria-labelledby="ranking-title">
+            <h2 id="ranking-title">Ranking de colores valorados</h2>
+            <p id="ranking-empty" class="muted" data-testid="ranking-empty">Aún no has evaluado colores.</p>
+            <ol id="ranking-list" class="ranking" data-testid="ranking-list"></ol>
+          </section>
+          <section class="card" aria-labelledby="seasons-title">
+            <h2 id="seasons-title">Las 12 estaciones</h2>
+            <ol id="season-scores" class="season-scores" data-testid="season-scores"></ol>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <!-- Informe -->
+    <div id="panel-report" class="panel" data-testid="panel-report" hidden>
+      <div class="controls report-actions">
+        <button type="button" id="report-final-download" class="primary" data-testid="report-final-download" aria-describedby="report-final-status" disabled>Descargar informe final (PDF)</button>
+        <button type="button" id="report-print" data-testid="report-print">Imprimir o guardar como PDF</button>
+        <button type="button" id="report-sheet-download" data-testid="report-sheet-download" hidden>Descargar lámina (PNG)</button>
+      </div>
+      <p id="report-final-status" class="note" data-testid="report-final-status" aria-live="polite"></p>
+      <article id="report" class="card report" data-testid="report"></article>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>Uso personal: tus sesiones, valoraciones y foto se guardan solo en este navegador y en este dispositivo. No se envía nada a ningún servidor; guarda una copia de seguridad si quieres conservarlas.</p>
+</footer>
+
+<!-- Diálogo de confirmación -->
+<dialog id="confirm-dialog" class="dialog" data-testid="confirm-dialog" aria-labelledby="confirm-title">
+  <h2 id="confirm-title">Confirmar</h2>
+  <p id="confirm-message" data-testid="confirm-message"></p>
+  <div class="controls">
+    <button type="button" id="confirm-cancel" data-testid="confirm-cancel">Cancelar</button>
+    <button type="button" id="confirm-accept" class="danger" data-testid="confirm-accept">Borrar</button>
+  </div>
+</dialog>
+
+<!-- Diálogo de edición de sesión -->
+<dialog id="edit-dialog" class="dialog" data-testid="edit-dialog" aria-labelledby="edit-title">
+  <form id="edit-form" class="form" novalidate>
+    <h2 id="edit-title">Editar sesión</h2>
+    <div class="field">
+      <label for="edit-name">Nombre de la sesión</label>
+      <input id="edit-name" type="text" maxlength="80" required autocomplete="off" data-testid="edit-name-input">
+    </div>
+    <div class="field">
+      <label for="edit-notes">Notas</label>
+      <textarea id="edit-notes" rows="4" maxlength="1000" data-testid="edit-notes-input"></textarea>
+    </div>
+    <p id="edit-error" class="form-error" data-testid="edit-error" role="alert" hidden></p>
+    <div class="controls">
+      <button type="button" id="edit-cancel" data-testid="edit-cancel">Cancelar</button>
+      <button type="submit" class="primary" data-testid="edit-save">Guardar cambios</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" class="toast" data-testid="toast" role="status" aria-live="polite" hidden></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
