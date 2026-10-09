@@ -12,8 +12,12 @@ const MIN_SHARE = 0.02; // por debajo de esto no se considera que haya prenda vi
 const SHADE_MIN = 0.45;
 const SHADE_MAX = 1.45;
 const EDGE_RADIUS = 2; // píxeles de la máscara que se difuminan a cada lado del borde
-const EDGE_LOW = 0.3;
-const EDGE_HIGH = 0.8;
+// El borde se desplaza un poco hacia FUERA de la prenda para que no asome un filo del color
+// original en el contorno; la piel y el cabello se protegen aparte (ver softEdge).
+const EDGE_LOW = 0.08;
+const EDGE_HIGH = 0.45;
+const HAIR = 1;
+const FACE_SKIN = 3;
 
 let loading = null;
 let segmenter = null;
@@ -61,20 +65,24 @@ function boxBlur(src, dst, w, h, radius, horizontal) {
 }
 
 /**
- * Convierte la máscara dura (0/1) en una opacidad con borde suave (0..255). El umbral desplaza
- * el borde un poco hacia dentro de la prenda para que el color no invada la piel del cuello.
+ * Convierte la máscara dura (0/1) en una opacidad con borde suave (0..255). El borde sale un
+ * poco hacia fuera para tapar el filo del color original; donde hay piel o cabello (`keep`) la
+ * opacidad se reduce para que el color no invada el cuello ni la cara.
  */
-function softEdge(mask, w, h) {
+function softEdge(mask, keep, w, h) {
   const a = Float32Array.from(mask);
   const b = new Float32Array(mask.length);
   for (let pass = 0; pass < 2; pass++) {
     boxBlur(a, b, w, h, EDGE_RADIUS, true);
     boxBlur(b, a, w, h, EDGE_RADIUS, false);
   }
+  const skin = Float32Array.from(keep);
+  boxBlur(skin, b, w, h, 1, true);
+  boxBlur(b, skin, w, h, 1, false);
   const alpha = new Uint8ClampedArray(mask.length);
   for (let i = 0; i < a.length; i++) {
     const t = Math.min(1, Math.max(0, (a[i] - EDGE_LOW) / (EDGE_HIGH - EDGE_LOW)));
-    alpha[i] = 255 * t * t * (3 - 2 * t);
+    alpha[i] = 255 * t * t * (3 - 2 * t) * (1 - skin[i]);
   }
   return alpha;
 }
@@ -103,6 +111,7 @@ export async function detectGarment(source) {
     const pixels = ctx.getImageData(0, 0, w, h).data;
 
     const mask = new Uint8Array(w * h);
+    const keep = new Uint8Array(w * h);
     const shade = new Float32Array(w * h);
     let count = 0;
     let sum = 0;
@@ -111,7 +120,9 @@ export async function detectGarment(source) {
         const i = y * w + x;
         const light = (0.299 * pixels[i * 4] + 0.587 * pixels[i * 4 + 1] + 0.114 * pixels[i * 4 + 2]) / 255;
         shade[i] = light;
-        if (labels[y * step * mw + x * step] !== CLOTHES) continue;
+        const label = labels[y * step * mw + x * step];
+        if (label >= HAIR && label <= FACE_SKIN) keep[i] = 1; // cabello y piel: no se tiñen
+        if (label !== CLOTHES) continue;
         mask[i] = 1;
         sum += light;
         count++;
@@ -122,7 +133,7 @@ export async function detectGarment(source) {
     for (let i = 0; i < shade.length; i++) {
       shade[i] = Math.min(SHADE_MAX, Math.max(SHADE_MIN, shade[i] / average));
     }
-    return { w, h, mask, shade, alpha: softEdge(mask, w, h) };
+    return { w, h, mask, shade, alpha: softEdge(mask, keep, w, h) };
   } finally {
     if (typeof result.close === 'function') result.close();
     else categories.close();

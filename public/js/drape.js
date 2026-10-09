@@ -187,9 +187,17 @@ export function currentGarment() {
   return garment;
 }
 
+let garmentLoading = false; // esperando el primer resultado del detector
+
+function setLoading(value) {
+  garmentLoading = value;
+  $('drape-loading').hidden = !value;
+}
+
 function setGarment(next, status) {
   const changed = Boolean(garment) !== Boolean(next);
   garment = next;
+  setLoading(false);
   $('drape-auto-status').textContent = status;
   $('drape-height').disabled = Boolean(garment);
   $('drape-neck').disabled = Boolean(garment);
@@ -205,7 +213,13 @@ async function trackGarment() {
     if (!$('drape-auto').checked) { setGarment(null, ''); return; }
     if (garmentFailed) return;
     if (!currentSource()) { setGarment(null, 'Activa la cámara o sube una foto para teñir tu ropa con el color de prueba.'); return; }
-    if (!garment) $('drape-auto-status').textContent = 'Buscando tu ropa…';
+    if (!garment) {
+      // Hasta el primer resultado se muestra un indicador de carga en vez de la tela dibujada,
+      // para que no parezca que la app no hace nada mientras se descarga el detector.
+      $('drape-auto-status').textContent = 'Buscando tu ropa…';
+      setLoading(true);
+      redraw();
+    }
     while (run === garmentRun) {
       const source = currentSource();
       if (!source || !$('stage').clientWidth) return; // sin imagen o pestaña oculta: se reintenta al redibujar
@@ -232,7 +246,10 @@ async function trackGarment() {
       await new Promise((resolve) => setTimeout(resolve, LIVE_INTERVAL_MS));
     }
   } finally {
-    if (run === garmentRun) garmentIdle = true;
+    if (run === garmentRun) {
+      garmentIdle = true;
+      if (garmentLoading) { setLoading(false); redraw(); }
+    }
   }
 }
 
@@ -297,7 +314,7 @@ export function redraw() {
   ctx.clearRect(0, 0, w, h);
   const source = currentSource();
   canvas.dataset.auto = String(Boolean(garment && source));
-  if (colorA) {
+  if (colorA && !garmentLoading) {
     drawCloth(ctx, w, h, {
       ...options,
       frame: source ? sourceFrame(source.sw, source.sh, w, h) : undefined,
