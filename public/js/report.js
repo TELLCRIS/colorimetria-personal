@@ -7,7 +7,7 @@ import { buildFicha, fichaBasis, FICHA_W, FICHA_H } from './ficha.js';
 import { jpegToPdf } from './pdf.js';
 import { autoNodes } from './auto.js';
 import { photo } from './photo.js';
-import { drawCloth, drawFitHeight, drapeHeightRatio } from './drape.js';
+import { drawCloth, drawFitHeight, drapeHeightRatio, drapeNeckRatio, sourceFrame } from './drape.js';
 import { showError, toast } from './ui.js';
 
 const CELL_W = 480;
@@ -79,7 +79,11 @@ function cellCanvas(source, color, heightRatio) {
   ctx.fillRect(0, 0, CELL_W, CELL_H);
   drawFitHeight(ctx, source, source.width, source.height, CELL_W, CELL_H);
   const hex = safeHex(color.hex);
-  drawCloth(ctx, CELL_W, CELL_H, { colorA: hex, colorB: hex, compare: false, heightRatio });
+  drawCloth(ctx, CELL_W, CELL_H, {
+    colorA: hex, colorB: hex, compare: false, heightRatio,
+    neckRatio: drapeNeckRatio(),
+    frame: sourceFrame(source.width, source.height, CELL_W, CELL_H),
+  });
   return canvas;
 }
 
@@ -306,6 +310,7 @@ export function initReport() {
   $('report-sheet-download').addEventListener('click', () => downloadSheet().catch(showError));
   $('report-final-download').addEventListener('click', () => downloadFinal().catch(showError));
   $('drape-height').addEventListener('input', invalidate); // las celdas usan la altura de tela actual
+  $('drape-neck').addEventListener('input', invalidate);
   window.addEventListener('beforeprint', refreshReport);
   on('session', invalidate);
   on('sessionMeta', invalidate);

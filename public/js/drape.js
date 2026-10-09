@@ -10,32 +10,51 @@ const NEUTRAL = '#CFC7BD';
 const CAPTURE_W = 1280;
 const CAPTURE_H = 960;
 
-function clothPath(w, h, heightRatio) {
-  const top = h * (1 - heightRatio);
-  const shoulder = top + h * 0.05;
-  const dip = Math.min(h * 0.13, (h - top) * 0.6);
+const DEFAULT_NECK = 0.38;
+
+/**
+ * Franja horizontal que ocupa la imagen (vídeo o foto) dentro de w×h cuando se dibuja con
+ * drawFitHeight. La tela se ciñe a esa franja para caer sobre los hombros y no sobre las bandas.
+ */
+export function sourceFrame(sw, sh, w, h) {
+  if (!sw || !sh) return { x: 0, w };
+  const dw = Math.min(w, (sw * h) / sh);
+  return { x: (w - dw) / 2, w: dw };
+}
+
+// Silueta de prenda: cuello centrado en la imagen, hombros que caen hacia los lados.
+function clothPath(h, heightRatio, frame, neckRatio) {
+  const left = frame.x;
+  const right = frame.x + frame.w;
+  const cx = frame.x + frame.w / 2;
+  const top = h * (1 - heightRatio); // base del cuello
+  const clothH = h - top;
+  const neckHalf = (frame.w * neckRatio) / 2;
+  const drop = Math.min(clothH * 0.45, frame.w * 0.16); // caída del hombro hasta el borde
+  const dip = Math.min(clothH * 0.55, neckHalf * 0.9); // profundidad del escote
+  const shoulderW = cx - neckHalf - left;
   const path = new Path2D();
-  path.moveTo(0, h);
-  path.lineTo(0, shoulder);
-  path.quadraticCurveTo(w * 0.16, top, w * 0.3, top);
+  path.moveTo(left, h);
+  path.lineTo(left, top + drop);
+  path.quadraticCurveTo(left + shoulderW * 0.55, top + drop * 0.12, cx - neckHalf, top);
   // Escote curvo bajo la barbilla
-  path.bezierCurveTo(w * 0.37, top + dip * 1.33, w * 0.63, top + dip * 1.33, w * 0.7, top);
-  path.quadraticCurveTo(w * 0.84, top, w, shoulder);
-  path.lineTo(w, h);
+  path.bezierCurveTo(cx - neckHalf * 0.55, top + dip * 1.33, cx + neckHalf * 0.55, top + dip * 1.33, cx + neckHalf, top);
+  path.quadraticCurveTo(right - shoulderW * 0.55, top + drop * 0.12, right, top + drop);
+  path.lineTo(right, h);
   path.closePath();
-  return { path, top };
+  return { path, top, cx };
 }
 
 /** Dibuja la tela en un contexto de w×h. Se usa igual en pantalla, en la captura y en el informe. */
-export function drawCloth(ctx, w, h, { colorA, colorB, compare, heightRatio }) {
-  const { path, top } = clothPath(w, h, heightRatio);
+export function drawCloth(ctx, w, h, { colorA, colorB, compare, heightRatio, frame = { x: 0, w }, neckRatio = DEFAULT_NECK }) {
+  const { path, top, cx } = clothPath(h, heightRatio, frame, neckRatio);
   ctx.save();
   ctx.clip(path);
   ctx.fillStyle = colorA;
-  ctx.fillRect(0, 0, compare ? w / 2 : w, h);
+  ctx.fillRect(0, 0, compare ? cx : w, h);
   if (compare) {
     ctx.fillStyle = colorB;
-    ctx.fillRect(w / 2, 0, w / 2, h);
+    ctx.fillRect(cx, 0, w - cx, h);
   }
   // Sombreado suave para que parezca tejido y no un bloque plano
   const shade = ctx.createLinearGradient(0, top, 0, h);
@@ -46,7 +65,7 @@ export function drawCloth(ctx, w, h, { colorA, colorB, compare, heightRatio }) {
   ctx.fillRect(0, 0, w, h);
   if (compare) {
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.fillRect(w / 2 - Math.max(1, w / 400), 0, Math.max(2, w / 200), h);
+    ctx.fillRect(cx - Math.max(1, w / 400), 0, Math.max(2, w / 200), h);
   }
   ctx.restore();
   ctx.lineWidth = Math.max(1, w / 500);
@@ -92,6 +111,18 @@ export function drapeHeightRatio() {
   return Number($('drape-height').value) / 100;
 }
 
+export function drapeNeckRatio() {
+  return Number($('drape-neck').value) / 100;
+}
+
+/** Tamaño de la imagen visible en el escenario (vídeo en vivo o foto), o null si no hay. */
+function currentSource() {
+  const video = camera.video;
+  if (camera.isOn && video.videoWidth > 0) return { sw: video.videoWidth, sh: video.videoHeight };
+  if (photo.canvas) return { sw: photo.canvas.width, sh: photo.canvas.height };
+  return null;
+}
+
 function currentCloth() {
   const { a, b, compare } = state.selection;
   const colorA = state.colorById.get(a);
@@ -104,6 +135,7 @@ function currentCloth() {
       colorB: safeHex(colorB?.hex),
       compare: comparing,
       heightRatio: drapeHeightRatio(),
+      neckRatio: drapeNeckRatio(),
     },
   };
 }
@@ -148,7 +180,8 @@ export function redraw() {
   }
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, w, h);
-  if (colorA) drawCloth(ctx, w, h, options);
+  const source = currentSource();
+  if (colorA) drawCloth(ctx, w, h, { ...options, frame: source ? sourceFrame(source.sw, source.sh, w, h) : undefined });
 }
 
 /** Compone el fondo visible (vídeo, foto o neutro) + tela y descarga un PNG en el dispositivo. */
@@ -170,7 +203,11 @@ async function capture() {
     drawFitHeight(ctx, photo.canvas, photo.canvas.width, photo.canvas.height, CAPTURE_W, CAPTURE_H);
     background = 'foto';
   }
-  drawCloth(ctx, CAPTURE_W, CAPTURE_H, options);
+  const source = currentSource();
+  drawCloth(ctx, CAPTURE_W, CAPTURE_H, {
+    ...options,
+    frame: source ? sourceFrame(source.sw, source.sh, CAPTURE_W, CAPTURE_H) : undefined,
+  });
 
   const blob = await canvasToBlob(canvas);
   const name = comparing ? `${colorA.id}-vs-${colorB.id}` : colorA.id;
@@ -190,6 +227,11 @@ function syncCompareControls() {
 
 export function initDrape() {
   $('drape-height').addEventListener('input', redraw);
+  $('drape-neck').addEventListener('input', redraw);
+  // La tela se ciñe a la imagen: hay que redibujar cuando cambia la fuente o su tamaño.
+  camera.video.addEventListener('loadedmetadata', redraw);
+  camera.video.addEventListener('resize', redraw);
+  new MutationObserver(redraw).observe($('stage'), { attributes: true, subtree: true, attributeFilter: ['data-source', 'data-has-photo', 'width', 'height'] });
   $('capture').addEventListener('click', () => capture().catch(showError));
 
   $('compare-toggle').addEventListener('change', (event) => {

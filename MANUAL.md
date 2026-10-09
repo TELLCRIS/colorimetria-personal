@@ -61,6 +61,7 @@ Tómalo como una pista para saber por qué colores empezar. La cámara altera lo
 En **2. Elige un color para probar** toca cualquier color: aparece como una tela debajo de tu rostro.
 
 - **Altura de la tela**: sube o baja la tela hasta que quede justo bajo la barbilla.
+- **Ancho del cuello**: abre o cierra el escote hasta que coincida con tu cuello y la tela caiga sobre tus hombros.
 - **Comparar dos colores lado a lado**: marca esta casilla para ver un color en cada mitad y decidir entre ambos.
 - **Filtros** (Subtono, Profundidad, Estación): reducen la lista. Si hiciste el análisis del rostro, puedes ver solo los colores sugeridos.
 - **Capturar con tela (PNG)**: descarga una imagen de tu rostro con el color puesto.
