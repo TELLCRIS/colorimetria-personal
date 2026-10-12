@@ -60,9 +60,12 @@ Tómalo como una pista para saber por qué colores empezar. La cámara altera lo
 
 En **2. Elige un color para probar** toca cualquier color: aparece como una tela debajo de tu rostro.
 
-- **Teñir mi ropa con el color de prueba (automático)**: activado de entrada. La aplicación reconoce la ropa que llevas puesta y la tiñe con el color elegido, conservando pliegues y sombras; con la cámara en vivo te sigue si te mueves. Funciona mejor con una prenda clara y lisa (blanca, crema o gris claro) y con los hombros a la vista. Necesita conexión a internet la primera vez, para descargar el detector; tu imagen se analiza en tu dispositivo y no se envía. Si no reconoce tu ropa, o desmarcas la casilla, se usa una tela dibujada que colocas con los dos controles siguientes.
-- **Altura de la tela**: sube o baja la tela hasta que quede justo bajo la barbilla.
-- **Ancho del cuello**: abre o cierra el escote hasta que coincida con tu cuello y la tela caiga sobre tus hombros.
+- **Cómo ver el color**: hay dos formas, y puedes cambiar entre ellas cuando quieras.
+  - **Polo de molde** (la que viene elegida): un polo de color uniforme y bordes definidos que se coloca solo bajo tu rostro y tapa por completo tu ropa. Es ligero, sigue tu cara con la cámara en vivo y es el recomendado en el móvil.
+  - **Teñir mi propia ropa**: la aplicación reconoce la prenda que llevas y la tiñe con el color elegido, conservando pliegues y sombras. Es más pesado: va mejor con una foto que con la cámara en vivo, y con ropa clara y lisa.
+  - Las dos necesitan conexión a internet la primera vez, para descargar el detector; tu imagen se analiza en tu dispositivo y no se envía. Si no hay conexión, el polo de molde sigue funcionando y lo colocas con los dos controles siguientes.
+- **Altura de la tela**: sube o baja el polo. Con el rostro detectado sirve de ajuste fino.
+- **Ancho del cuello**: abre o cierra el cuello del polo.
 - **Comparar dos colores lado a lado**: marca esta casilla para ver un color en cada mitad y decidir entre ambos.
 - **Filtros** (Subtono, Profundidad, Estación): reducen la lista. Si hiciste el análisis del rostro, puedes ver solo los colores sugeridos.
 - **Capturar con tela (PNG)**: descarga una imagen de tu rostro con el color puesto.

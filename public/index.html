@@ -159,10 +159,17 @@
         <section class="card adjust-card" aria-labelledby="adjust-title">
           <h2 id="adjust-title">Tela virtual</h2>
           <div id="drape-label" class="drape-label" data-testid="drape-label" aria-live="polite"></div>
-          <label class="check">
-            <input type="checkbox" id="drape-auto" data-testid="drape-auto" checked>
-            <span>Teñir mi ropa con el color de prueba (automático)</span>
-          </label>
+          <fieldset class="drape-mode">
+            <legend>Cómo ver el color</legend>
+            <label class="check">
+              <input type="radio" name="drape-mode" id="drape-mode-mold" value="mold" data-testid="drape-mode-mold" checked>
+              <span>Polo de molde: tapa tu ropa con un color uniforme (ligero, recomendado en el móvil)</span>
+            </label>
+            <label class="check">
+              <input type="radio" name="drape-mode" id="drape-mode-garment" value="garment" data-testid="drape-mode-garment">
+              <span>Teñir mi propia ropa (más pesado; mejor con foto y ropa clara)</span>
+            </label>
+          </fieldset>
           <p id="drape-auto-status" class="note" data-testid="drape-auto-status" aria-live="polite"></p>
           <div class="field range-field">
             <label for="drape-height">Altura de la tela</label>

@@ -164,6 +164,9 @@ export async function detectGarment(source) {
   }
 }
 
+// Misma interfaz que face.js, para que el drapeado use cualquiera de los dos detectores.
+export { loadSegmenter as load, detectGarment as detect };
+
 function release(result) {
   if (typeof result.close === 'function') result.close();
   else result.categoryMask.close();

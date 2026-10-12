@@ -11,6 +11,7 @@ const CAPTURE_W = 1280;
 const CAPTURE_H = 960;
 
 const DEFAULT_NECK = 0.38;
+const DEFAULT_HEIGHT = 0.34; // valor neutro del control de altura
 
 /**
  * Franja horizontal que ocupa la imagen (vídeo o foto) dentro de w×h cuando se dibuja con
@@ -44,6 +45,46 @@ function manualPath(h, heightRatio, frame, neckRatio) {
   path.lineTo(right, h);
   path.closePath();
   return { path, top, cx };
+}
+
+/**
+ * Polo de molde colocado bajo el rostro detectado (fit en proporciones de la imagen). Es amplio a
+ * propósito: hombros y mangas más anchos que el cuerpo y cuello alto, para tapar por completo la
+ * ropa real. Los controles de altura y cuello hacen el ajuste fino sobre esa posición.
+ */
+function moldPath(h, frame, fit, heightRatio, neckRatio, mirrored) {
+  const left = frame.x;
+  const right = frame.x + frame.w;
+  const clampX = (x) => Math.min(right, Math.max(left, x));
+  const cx = clampX(frame.imgX + (mirrored ? 1 - fit.cx : fit.cx) * frame.imgW);
+  const faceW = fit.fw * frame.imgW;
+  const faceH = fit.fh * h;
+  const lift = (heightRatio - DEFAULT_HEIGHT) * h; // subir el control sube el polo
+  // Lados del cuello a la altura de la barbilla: como una tela de drapeado, sube hasta el rostro
+  // y así no asoma el cuello de la ropa real.
+  const top = Math.min(h * 0.97, fit.chin * h - faceH * 0.04 - lift);
+  const neckHalf = faceW * 0.42 * (neckRatio / DEFAULT_NECK);
+  const dip = faceH * 0.12;
+  const shoulderHalf = Math.max(neckHalf * 1.5, faceW * 1.7);
+  const armHalf = faceW * 2.2;
+  const shoulderY = top + faceH * 0.12;
+  const sleeveY = Math.min(h, shoulderY + faceH * 0.6);
+  const neckL = cx - neckHalf;
+  const neckR = cx + neckHalf;
+  const path = new Path2D();
+  path.moveTo(clampX(cx - armHalf), h);
+  path.lineTo(clampX(cx - armHalf), sleeveY);
+  path.quadraticCurveTo(clampX(cx - armHalf), shoulderY, clampX(cx - shoulderHalf), shoulderY);
+  path.lineTo(neckL, top);
+  path.bezierCurveTo(cx - neckHalf * 0.55, top + dip * 1.33, cx + neckHalf * 0.55, top + dip * 1.33, neckR, top);
+  path.lineTo(clampX(cx + shoulderHalf), shoulderY);
+  path.quadraticCurveTo(clampX(cx + armHalf), shoulderY, clampX(cx + armHalf), sleeveY);
+  path.lineTo(clampX(cx + armHalf), h);
+  path.closePath();
+  const collar = new Path2D();
+  collar.moveTo(neckL, top);
+  collar.bezierCurveTo(cx - neckHalf * 0.55, top + dip * 1.33, cx + neckHalf * 0.55, top + dip * 1.33, neckR, top);
+  return { path, top, cx, collar: { path: collar, width: Math.max(2, faceH * 0.1) } };
 }
 
 const hexToRgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
@@ -89,12 +130,14 @@ function drawGarment(ctx, w, h, frame, garment, { colorA, colorB, compare }, mir
 }
 
 /** Dibuja la tela en un contexto de w×h. Se usa igual en pantalla, en la captura y en el informe. */
-export function drawCloth(ctx, w, h, { colorA, colorB, compare, heightRatio, frame = { x: 0, w, imgX: 0, imgW: w }, neckRatio = DEFAULT_NECK, garment = null, mirrored = false }) {
+export function drawCloth(ctx, w, h, { colorA, colorB, compare, heightRatio, frame = { x: 0, w, imgX: 0, imgW: w }, neckRatio = DEFAULT_NECK, garment = null, fit = null, mirrored = false }) {
   if (garment) {
     drawGarment(ctx, w, h, frame, garment, { colorA, colorB, compare }, mirrored);
     return;
   }
-  const { path, top, cx } = manualPath(h, heightRatio, frame, neckRatio);
+  const { path, top, cx, collar } = fit
+    ? moldPath(h, frame, fit, heightRatio, neckRatio, mirrored)
+    : manualPath(h, heightRatio, frame, neckRatio);
   ctx.save();
   ctx.clip(path);
   ctx.fillStyle = colorA;
@@ -110,6 +153,12 @@ export function drawCloth(ctx, w, h, { colorA, colorB, compare, heightRatio, fra
   shade.addColorStop(1, 'rgba(0,0,0,0.16)');
   ctx.fillStyle = shade;
   ctx.fillRect(0, 0, w, h);
+  if (collar) {
+    // Ribete del cuello: da al polo un borde definido, como una prenda real.
+    ctx.lineWidth = collar.width;
+    ctx.strokeStyle = 'rgba(0,0,0,0.16)';
+    ctx.stroke(collar.path);
+  }
   if (compare) {
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
     ctx.fillRect(cx - Math.max(1, w / 400), 0, Math.max(2, w / 200), h);
@@ -172,99 +221,129 @@ function currentSource() {
   return null;
 }
 
-// --- Teñido automático de la prenda ---
-const AUTO_KEY = 'colorimetria.drapeAuto';
+// --- Dos formas de ver el color: polo de molde (ligero) o teñir la propia ropa (pesado) ---
+const MODE_KEY = 'colorimetria.drapeMode';
 const LIVE_INTERVAL_MS = 70;
 const LOAD_TIMEOUT_MS = 120000;
 const SLOW_MS = 250; // por encima de esto el vídeo en vivo no puede seguir el movimiento con soltura
-let garment = null; // máscara de la ropa detectada en la fuente visible, o null
-let garmentRun = 0; // invalida las detecciones en curso cuando cambia la fuente
-let garmentFailed = false; // el modelo no se pudo cargar: no se reintenta hasta volver a marcar la casilla
-let garmentIdle = true; // no hay ninguna detección en marcha
-let garmentDone = false; // la foto visible ya se analizó
+let garment = null; // modo «ropa»: máscara de la prenda detectada, o null
+let fit = null; // modo «molde»: posición del rostro para colocar el polo, o null (ajuste manual)
+let trackRun = 0; // invalida las detecciones en curso cuando cambia la fuente o el modo
+let trackFailed = false; // el detector no se pudo cargar: no se reintenta hasta cambiar de modo
+let trackIdle = true; // no hay ninguna detección en marcha
+let trackDone = false; // la foto visible ya se analizó
+let loadingShown = false; // esperando el primer resultado del teñido
 
-/** Prenda detectada en la fuente visible, o null si se usa la tela dibujada con ajuste manual. */
-export function currentGarment() {
-  return garment;
+function drapeMode() {
+  return $('drape-mode-garment').checked ? 'garment' : 'mold';
 }
 
-let garmentLoading = false; // esperando el primer resultado del detector
+/** Lo que drawCloth necesita para dibujar igual que en pantalla (prenda teñida o polo colocado). */
+export function currentDrape() {
+  return { garment, fit };
+}
 
 function setLoading(value) {
-  garmentLoading = value;
+  loadingShown = value;
   $('drape-loading').hidden = !value;
 }
 
-function setGarment(next, status) {
-  const changed = Boolean(garment) !== Boolean(next);
-  garment = next;
+function setResult({ nextGarment = null, nextFit = null }, status) {
+  const changed = Boolean(garment) !== Boolean(nextGarment) || Boolean(fit) !== Boolean(nextFit);
+  garment = nextGarment;
+  fit = nextFit;
   setLoading(false);
   $('drape-auto-status').textContent = status;
+  // Con la ropa teñida no hay nada que colocar; con el polo, los controles hacen el ajuste fino.
   $('drape-height').disabled = Boolean(garment);
   $('drape-neck').disabled = Boolean(garment);
   redraw();
   if (changed || !camera.isOn) document.dispatchEvent(new CustomEvent('drape:garment'));
 }
 
-async function trackGarment() {
-  const run = ++garmentRun;
-  garmentIdle = false;
-  garmentDone = false;
+// Suaviza el movimiento en vídeo para que el polo no tiemble.
+function blendFit(previous, next) {
+  if (!previous) return next;
+  const mixed = {};
+  for (const key of Object.keys(next)) mixed[key] = previous[key] * 0.5 + next[key] * 0.5;
+  return mixed;
+}
+
+async function track() {
+  const run = ++trackRun;
+  const mode = drapeMode();
+  trackIdle = false;
+  trackDone = false;
   try {
-    if (!$('drape-auto').checked) { setGarment(null, ''); return; }
-    if (garmentFailed) return;
-    if (!currentSource()) { setGarment(null, 'Activa la cámara o sube una foto para teñir tu ropa con el color de prueba.'); return; }
-    if (!garment) {
-      // Hasta el primer resultado se muestra un indicador de carga en vez de la tela dibujada,
-      // para que no parezca que la app no hace nada mientras se descarga el detector.
+    if (trackFailed) return;
+    if (!currentSource()) {
+      setResult({}, mode === 'garment'
+        ? 'Activa la cámara o sube una foto para teñir tu ropa con el color de prueba.'
+        : 'Activa la cámara o sube una foto: el polo se colocará solo bajo tu rostro.');
+      return;
+    }
+    if (mode === 'garment' && !garment) {
+      // El detector de ropa pesa: hasta el primer resultado se muestra un indicador de carga,
+      // para que no parezca que la app no hace nada.
+      fit = null;
       $('drape-auto-status').textContent = 'Buscando tu ropa…';
       setLoading(true);
       redraw();
     }
-    while (run === garmentRun) {
+    if (mode === 'mold' && garment) setResult({ nextFit: fit }, ''); // el polo se ve al instante
+    while (run === trackRun) {
       const source = currentSource();
       if (!source || !$('stage').clientWidth) return; // sin imagen o pestaña oculta: se reintenta al redibujar
       let found;
       let started = performance.now();
       try {
-        const { loadSegmenter, detectGarment } = await import('./segment.js');
-        // La primera vez se descargan unos 25 MB: con datos móviles puede tardar. Si se atasca,
-        // no se deja al usuario esperando sin fin.
+        const detector = await (mode === 'garment' ? import('./segment.js') : import('./face.js'));
+        // Si la descarga se atasca, no se deja al usuario esperando sin fin.
         let timer;
         const giveUp = new Promise((_, reject) => {
           timer = setTimeout(() => reject(new Error('la descarga tardó demasiado')), LOAD_TIMEOUT_MS);
         });
         try {
-          await Promise.race([loadSegmenter(), giveUp]);
+          await Promise.race([detector.load(), giveUp]);
         } finally {
           clearTimeout(timer);
         }
         started = performance.now(); // solo cuenta el cálculo, no la descarga inicial
-        found = await detectGarment(source.el);
+        found = await detector.detect(source.el, source.sw, source.sh);
       } catch (error) {
-        if (run !== garmentRun) return;
-        garmentFailed = true;
-        setGarment(null, `No se pudo preparar el teñido automático (${error?.message || 'error desconocido'}). Comprueba la conexión y desmarca y vuelve a marcar la casilla para reintentar, o usa los controles de abajo.`);
+        if (run !== trackRun) return;
+        trackFailed = true;
+        const reason = error?.message || 'error desconocido';
+        setResult({}, mode === 'garment'
+          ? `No se pudo preparar el teñido de la ropa (${reason}). Comprueba la conexión o usa el polo de molde.`
+          : `No se pudo cargar el ajuste automático del polo (${reason}): colócalo con los controles de altura y cuello.`);
         return;
       }
       const elapsed = performance.now() - started;
-      if (run !== garmentRun) return;
-      if (!source.live) garmentDone = true; // en una foto basta con una detección
-      if (found) {
-        setGarment(found, source.live && elapsed > SLOW_MS
-          ? 'Ropa detectada. En este dispositivo el vídeo en vivo actualiza el color despacio: para probar colores con fluidez, pulsa «Tomar foto».'
-          : 'Ropa detectada: se tiñe con el color de prueba. Con ropa clara y lisa el color se ve más fiel.');
+      if (run !== trackRun) return;
+      if (!source.live) trackDone = true; // en una foto basta con una detección
+      if (mode === 'garment') {
+        if (found) {
+          setResult({ nextGarment: found }, source.live && elapsed > SLOW_MS
+            ? 'Ropa detectada. En este dispositivo el vídeo en vivo actualiza el color despacio: usa «Tomar foto» o el polo de molde para ir con fluidez.'
+            : 'Ropa detectada: se tiñe con el color de prueba. Con ropa clara y lisa el color se ve más fiel.');
+        } else {
+          setResult({}, 'No se ve tu ropa en la imagen: aléjate un poco para que se vean los hombros, o usa el polo de molde.');
+        }
+      } else if (found) {
+        setResult({ nextFit: source.live ? blendFit(fit, found) : found },
+          'Polo colocado bajo tu rostro. Si hace falta, afínalo con los controles de altura y cuello.');
       } else {
-        setGarment(null, 'No se ve tu ropa en la imagen: aléjate un poco para que se vean los hombros, o usa la tela dibujada con los controles de abajo.');
+        setResult({}, 'No se encontró tu rostro en la imagen: coloca el polo con los controles de altura y cuello.');
       }
       if (!source.live) return;
       // En equipos lentos se deja respirar al navegador: la pausa crece con lo que tardó el cálculo.
       await new Promise((resolve) => setTimeout(resolve, Math.max(LIVE_INTERVAL_MS, elapsed * 3)));
     }
   } finally {
-    if (run === garmentRun) {
-      garmentIdle = true;
-      if (garmentLoading) { setLoading(false); redraw(); }
+    if (run === trackRun) {
+      trackIdle = true;
+      if (loadingShown) { setLoading(false); redraw(); }
     }
   }
 }
@@ -318,7 +397,7 @@ export function redraw() {
 
   if (!cssW || !cssH) return; // pestaña oculta: se redibuja al volver a mostrarse
   // Si la detección quedó pendiente (la vista estaba oculta), se retoma ahora.
-  if (garmentIdle && !garmentDone && !garmentFailed && $('drape-auto').checked && currentSource()) trackGarment();
+  if (trackIdle && !trackDone && !trackFailed && currentSource()) track();
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = Math.round(cssW * dpr);
   const h = Math.round(cssH * dpr);
@@ -329,12 +408,13 @@ export function redraw() {
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, w, h);
   const source = currentSource();
-  canvas.dataset.auto = String(Boolean(garment && source));
-  if (colorA && !garmentLoading) {
+  canvas.dataset.auto = String(Boolean(source && (garment || fit)));
+  canvas.dataset.mode = drapeMode();
+  if (colorA && !loadingShown) {
     drawCloth(ctx, w, h, {
       ...options,
+      ...(source ? currentDrape() : {}),
       frame: source ? sourceFrame(source.sw, source.sh, w, h) : undefined,
-      garment: source ? garment : null,
       mirrored: Boolean(source?.mirrored),
     });
   }
@@ -362,8 +442,8 @@ async function capture() {
   const source = currentSource();
   drawCloth(ctx, CAPTURE_W, CAPTURE_H, {
     ...options,
+    ...(source ? currentDrape() : {}),
     frame: source ? sourceFrame(source.sw, source.sh, CAPTURE_W, CAPTURE_H) : undefined,
-    garment: source ? garment : null,
     mirrored: Boolean(source?.mirrored),
   });
 
@@ -387,18 +467,21 @@ export function initDrape() {
   $('drape-height').addEventListener('input', redraw);
   $('drape-neck').addEventListener('input', redraw);
   // La tela se ciñe a la imagen: hay que redibujar cuando cambia la fuente o su tamaño.
-  const sourceChanged = () => { redraw(); trackGarment(); };
+  const sourceChanged = () => { redraw(); track(); };
   camera.video.addEventListener('loadedmetadata', sourceChanged);
   camera.video.addEventListener('resize', redraw);
   photo.onChange(sourceChanged);
   camera.onChange(sourceChanged);
 
-  const auto = $('drape-auto');
-  try { auto.checked = localStorage.getItem(AUTO_KEY) !== 'off'; } catch { /* sin almacenamiento: queda activado */ }
-  auto.addEventListener('change', () => {
-    try { localStorage.setItem(AUTO_KEY, auto.checked ? 'on' : 'off'); } catch { /* preferencia no guardada */ }
-    garmentFailed = false;
-    trackGarment();
+  // El polo de molde es el modo por defecto: es ligero y funciona también sin detector.
+  try { $('drape-mode-garment').checked = localStorage.getItem(MODE_KEY) === 'garment'; } catch { /* sin almacenamiento: polo de molde */ }
+  document.querySelectorAll('input[name="drape-mode"]').forEach((radio) => {
+    radio.addEventListener('change', () => {
+      if (!radio.checked) return;
+      try { localStorage.setItem(MODE_KEY, drapeMode()); } catch { /* preferencia no guardada */ }
+      trackFailed = false;
+      track();
+    });
   });
   $('capture').addEventListener('click', () => capture().catch(showError));
 
@@ -425,7 +508,7 @@ export function initDrape() {
   window.addEventListener('resize', redraw);
   window.addEventListener('orientationchange', () => setTimeout(redraw, 150));
   const sync = () => { syncCompareControls(); redraw(); };
-  on('session', trackGarment);
+  on('session', track);
   on('selection', sync);
   on('session', sync);
 }

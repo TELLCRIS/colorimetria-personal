@@ -7,7 +7,7 @@ import { buildFicha, fichaBasis, FICHA_W, FICHA_H } from './ficha.js';
 import { jpegToPdf } from './pdf.js';
 import { autoNodes } from './auto.js';
 import { photo } from './photo.js';
-import { drawCloth, drawFitHeight, drapeHeightRatio, drapeNeckRatio, sourceFrame, currentGarment } from './drape.js';
+import { drawCloth, drawFitHeight, drapeHeightRatio, drapeNeckRatio, sourceFrame, currentDrape } from './drape.js';
 import { showError, toast } from './ui.js';
 
 const CELL_W = 480;
@@ -83,7 +83,7 @@ function cellCanvas(source, color, heightRatio) {
     colorA: hex, colorB: hex, compare: false, heightRatio,
     neckRatio: drapeNeckRatio(),
     frame: sourceFrame(source.width, source.height, CELL_W, CELL_H),
-    garment: currentGarment(),
+    ...currentDrape(),
   });
   return canvas;
 }
