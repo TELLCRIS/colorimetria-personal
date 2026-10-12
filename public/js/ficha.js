@@ -20,7 +20,7 @@ const C = {
   noticeBg: '#FBF0D9', noticeLine: '#E5CF9C',
 };
 const SEASON_HUES = ['#F2A65A', '#8FA8C8', '#A64F32', '#1F3A6E']; // primavera, verano, otoño, invierno
-const AUTHOR = 'by tellcris';
+const AUTHOR = 'by TelloCris';
 const SANS = 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
 const SERIF = '"Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, "Times New Roman", serif';
 const font = (size, weight = 400, serif = false) => `${weight} ${size}px ${serif ? SERIF : SANS}`;
