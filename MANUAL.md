@@ -40,6 +40,8 @@ En **1. Tu imagen: cámara o foto** tienes tres opciones:
 | **Tomar foto** | Congela la imagen de la cámara para trabajar con calma. |
 | **Subir foto** | Usa una foto que ya tengas guardada. |
 
+**Guía de encuadre.** Sobre la imagen verás un óvalo para el rostro y líneas de ojos, barbilla y hombros. Coloca tu cara dentro del óvalo: la guía se pone verde y dice "Encuadre correcto" cuando estás bien situado, o te indica qué corregir ("Acércate un poco", "Centra el rostro en el óvalo"…). Puedes ocultarla con el botón del visor que hay bajo la imagen. La guía no aparece en las capturas ni en el informe.
+
 Recomendación: usa una foto fija, de frente y con buena luz. Así comparas todos los colores sobre la misma imagen.
 
 Tu foto se guarda solo en este navegador y en este dispositivo. No se envía a ningún servidor.

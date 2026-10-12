@@ -19,7 +19,8 @@ function swatch(color) {
       el('span', { class: 'slot' })),
     el('span', { class: 'label' },
       el('span', { class: 'name', text: color.name }),
-      el('span', { class: 'sr-only extra' })));
+      el('span', { class: 'sr-only extra' })),
+    el('span', { class: 'code', 'aria-hidden': 'true', text: hex }));
 }
 
 function syncFilters() {

@@ -31,11 +31,12 @@ function chip({ color, score }, group) {
       type: 'button', class: 'mp-chip', 'data-testid': `my-palette-chip-${color.id}`,
       'data-color-id': color.id, 'data-group': group, 'aria-pressed': 'false',
       'aria-label': `${color.name}, ${score}%, ${GROUP_NAME[group].toLowerCase()}. Probar este color`,
-      style: { backgroundColor: hex, color: textColorFor(hex) },
       onClick: () => pickColor(color.id),
     },
-      el('span', { text: color.name }),
-      el('span', { class: 'pct', text: `${score}%` })));
+      // Retal de tela con el borde cortado en zigzag; el nombre va debajo, como en un muestrario.
+      el('span', { class: 'cloth', style: { backgroundColor: hex, color: textColorFor(hex) } },
+        el('span', { class: 'pct', text: `${score}%` })),
+      el('span', { class: 'name', text: color.name })));
 }
 
 function markSelected() {

@@ -2,6 +2,9 @@
 import { $, el, clear, bar, colorChip, percent, plural, safeHex, CONFIDENCE, UNDERTONE, DEPTH, CHROMA } from './dom.js';
 import { state, on, isRated } from './store.js';
 import { autoNodes } from './auto.js';
+import { seasonBand, familyOf } from './swatchbook.js';
+
+const FAMILY = { primavera: 'Primavera', verano: 'Verano', otono: 'Otoño', invierno: 'Invierno' };
 
 /** Valoraciones con su color, ordenadas por puntuación (sin puntuación al final). */
 export function rankedRatings() {
@@ -25,6 +28,7 @@ function renderSuggested(analysis) {
   box.dataset.enough = String(Boolean(analysis?.enough));
   box.dataset.seasonId = '';
   box.dataset.confidence = analysis?.confidence ?? '';
+  delete box.dataset.family;
   if (!analysis) {
     box.append(el('p', { class: 'muted', text: 'Todavía no hay análisis para esta sesión.' }));
     return;
@@ -44,8 +48,11 @@ function renderSuggested(analysis) {
   }
   const { top, runnerUp } = analysis;
   box.dataset.seasonId = top.id;
+  box.dataset.family = familyOf(top.id);
   const description = state.seasonById.get(top.id)?.description;
   box.append(
+    seasonBand(top.id, { max: 10, className: 'band band-lg' }),
+    FAMILY[familyOf(top.id)] ? el('span', { class: 'family', text: `Familia ${FAMILY[familyOf(top.id)]}` }) : null,
     el('span', { class: 'season-name', 'data-testid': 'season-top-name', text: top.name }),
     el('p', {},
       el('span', { text: `Afinidad: ${percent(top.score)} · Confianza: ` }),
@@ -85,13 +92,15 @@ function renderAxes(analysis) {
 function renderSeasons(analysis) {
   const topId = analysis?.enough ? analysis?.top?.id : null;
   clear($('season-scores')).append(...(analysis?.seasons ?? []).map((season) =>
-    el('li', { class: season.id === topId ? 'top' : '', 'data-testid': `season-score-${season.id}` },
+    el('li', { class: season.id === topId ? 'top' : '', 'data-testid': `season-score-${season.id}`, 'data-family': familyOf(season.id) },
       el('div', { class: 'rank-head' },
         el('span', { class: 'who' },
-          el('span', { text: season.name }),
+          el('span', { class: 'season-label', text: season.name }),
           el('span', { class: 'tag', text: plural(season.ratedCount ?? 0, 'valorado', 'valorados') })),
-        el('span', { text: season.score == null ? 'Sin datos' : percent(season.score) })),
-      bar(season.score))));
+        el('span', { class: 'val', text: season.score == null ? 'Sin datos' : percent(season.score) })),
+      el('div', { class: 'season-row' },
+        seasonBand(season.id, { max: 6, className: 'band band-sm' }),
+        bar(season.score)))));
 }
 
 function renderRanking() {

@@ -8,6 +8,7 @@ import { camera, initCamera } from './camera.js';
 import { photo, initPhoto, deleteStoredPhoto } from './photo.js';
 import { initBackup, requestPersistence } from './backup.js';
 import { initDrape, redraw as redrawDrape } from './drape.js';
+import { initGuide } from './guide.js';
 import { initFeatures, closeAnalyze } from './features.js';
 import { initPalette } from './palette.js';
 import { initRating } from './rating.js';
@@ -100,6 +101,7 @@ function init() {
   initCamera();
   initPhoto();
   initDrape();
+  initGuide();
   initFeatures();
   initPalette();
   initRating();
@@ -122,6 +124,9 @@ function init() {
   on('session', renderSessionHeader);
   on('sessionMeta', renderSessionHeader);
   on('ratings', renderSessionHeader);
+
+  // Los ajustes secundarios de la tela quedan a un toque en el teléfono y abiertos en pantallas anchas.
+  $('adjust-details').open = window.matchMedia('(min-width: 761px)').matches;
 
   $('back-to-history').addEventListener('click', showHistory);
   document.querySelectorAll('.tab').forEach((button) => {

@@ -2,6 +2,7 @@
 import { api } from './api.js';
 import { $, el, clear, formatDate, plural } from './dom.js';
 import { confirmDialog, openEditDialog, showError, toast, validateSessionFields } from './ui.js';
+import { seasonBand, familyOf } from './swatchbook.js';
 
 let onOpen = () => {};
 let onCreated = () => {};
@@ -17,7 +18,14 @@ function row(session) {
   const season = session.topSeason?.name
     ? `Estación sugerida: ${session.topSeason.name}`
     : 'Sin estación sugerida todavía';
-  return el('li', { class: 'session-row', 'data-testid': `session-row-${session.id}`, 'data-session-id': session.id },
+  const seasonId = session.topSeason?.id;
+  return el('li', {
+    class: 'session-row', 'data-testid': `session-row-${session.id}`, 'data-session-id': session.id,
+    'data-family': seasonId ? familyOf(seasonId) : null,
+  },
+    // Tira con los colores de la estación sugerida; vacía (rayada) si aún no hay ninguna.
+    (seasonId && seasonBand(seasonId, { max: 8, className: 'band band-card' }))
+      || el('span', { class: 'band band-card band-empty', 'aria-hidden': 'true' }),
     el('span', { class: 'name', 'data-testid': 'session-row-name', text: session.name }),
     el('p', { class: 'meta', text: `${formatDate(session.createdAt)} · ${rated} · ${season}` }),
     session.notes ? el('p', { class: 'notes', text: session.notes }) : null,
@@ -42,6 +50,7 @@ export async function loadHistory() {
   try {
     const { sessions } = await api.listSessions();
     clear(list);
+    $('view-history').dataset.empty = String(!sessions?.length);
     if (!sessions?.length) {
       setStatus('Todavía no hay sesiones. Crea la primera para empezar a probar colores.');
       return;

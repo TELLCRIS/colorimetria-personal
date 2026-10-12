@@ -13,12 +13,17 @@ const M = 64;
 const GAP = 24;
 const SMALL = 22;
 const BODY = 24;
+// Misma identidad que la interfaz: papel neutro cálido, tinta y títulos en serif del sistema.
 const C = {
-  bg: '#F6F2ED', card: '#FFFDF9', line: '#E4DCD3', ink: '#2C2927', muted: '#6A635D',
-  accent: '#665044', soft: '#F1E9DF', track: '#E2D8CD', stage: '#CFC7BD',
+  bg: '#F3EFE8', card: '#FFFDFA', line: '#DDD3C7', ink: '#221E1B', muted: '#665D55',
+  accent: '#2A2420', earth: '#855538', soft: '#ECE5DB', track: '#E3DACF', stage: '#CFC7BD',
   noticeBg: '#FBF0D9', noticeLine: '#E5CF9C',
 };
-const font = (size, weight = 400) => `${weight} ${size}px system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif`;
+const SEASON_HUES = ['#F2A65A', '#8FA8C8', '#A64F32', '#1F3A6E']; // primavera, verano, otoño, invierno
+const AUTHOR = 'by tellcris';
+const SANS = 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
+const SERIF = '"Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, "Times New Roman", serif';
+const font = (size, weight = 400, serif = false) => `${weight} ${size}px ${serif ? SERIF : SANS}`;
 
 /**
  * Qué estación usa la ficha y de dónde sale.
@@ -50,14 +55,14 @@ export function buildFicha() {
 
   // --- utilidades de dibujo ---
   const box = (x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); };
-  const text = (value, x, y, { size = BODY, weight = 400, color = C.ink, align = 'left' } = {}) => {
-    ctx.font = font(size, weight);
+  const text = (value, x, y, { size = BODY, weight = 400, color = C.ink, align = 'left', serif = false } = {}) => {
+    ctx.font = font(size, weight, serif);
     ctx.fillStyle = color;
     ctx.textAlign = align;
     ctx.fillText(value, x, y);
     ctx.textAlign = 'left';
   };
-  const width = (value, size, weight = 400) => { ctx.font = font(size, weight); return ctx.measureText(value).width; };
+  const width = (value, size, weight = 400, serif = false) => { ctx.font = font(size, weight, serif); return ctx.measureText(value).width; };
   const fit = (value, maxW, size, weight = 400) => {
     if (width(value, size, weight) <= maxW) return value;
     let cut = String(value);
@@ -86,16 +91,17 @@ export function buildFicha() {
   };
   /** Tarjeta con título; devuelve el rectángulo interior. */
   const card = (x, y, w, h, title, aside) => {
-    box(x, y, w, h, 26); ctx.fillStyle = C.card; ctx.fill();
+    box(x, y, w, h, 20); ctx.fillStyle = C.card; ctx.fill();
     ctx.strokeStyle = C.line; ctx.lineWidth = 2; ctx.stroke();
-    text(title, x + 24, y + 46, { size: 27, weight: 700 });
-    if (aside) text(fit(aside, w - 72 - width(title, 27, 700), SMALL), x + 40 + width(title, 27, 700), y + 46, { size: SMALL, color: C.muted });
+    text(title, x + 24, y + 47, { size: 29, weight: 600, serif: true });
+    const titleW = width(title, 29, 600, true);
+    if (aside) text(fit(aside, w - 72 - titleW, SMALL), x + 40 + titleW, y + 46, { size: SMALL, color: C.muted });
     return { x: x + 24, y: y + 70, w: w - 48, h: h - 94 };
   };
   /** Muestra rectangular con el nombre dentro, en tinta clara u oscura según la luminancia. */
   const tile = (x, y, w, h, color) => {
     const hex = safeHex(color.hex);
-    box(x, y, w, h, 14); ctx.fillStyle = hex; ctx.fill();
+    box(x, y, w, h, 10); ctx.fillStyle = hex; ctx.fill();
     ctx.strokeStyle = 'rgba(0,0,0,0.16)'; ctx.lineWidth = 2; ctx.stroke();
     const lines = wrap(color.name, w - 14, SMALL, 600, 2);
     const lh = 26;
@@ -128,7 +134,7 @@ export function buildFicha() {
   const photoW = 450;
   const headH = 590;
   ctx.save();
-  box(M, M, photoW, headH, 28); ctx.clip();
+  box(M, M, photoW, headH, 20); ctx.clip();
   ctx.fillStyle = C.stage; ctx.fillRect(M, M, photoW, headH);
   if (photo.canvas) {
     ctx.translate(M, M);
@@ -138,7 +144,7 @@ export function buildFicha() {
     paragraphCentered('Añade una en «Probar colores» para que aparezca aquí.', M + photoW / 2, M + headH / 2 + 34, photoW - 80);
   }
   ctx.restore();
-  box(M, M, photoW, headH, 28); ctx.strokeStyle = C.line; ctx.lineWidth = 2; ctx.stroke();
+  box(M, M, photoW, headH, 20); ctx.strokeStyle = C.line; ctx.lineWidth = 2; ctx.stroke();
 
   function paragraphCentered(value, cx, y, maxW) {
     for (const line of wrap(value, maxW, SMALL)) { text(line, cx, y, { size: SMALL, align: 'center' }); y += 30; }
@@ -148,7 +154,7 @@ export function buildFicha() {
   const hw = FICHA_W - M - hx;
   let y = M + 26;
   if ('letterSpacing' in ctx) ctx.letterSpacing = '3px';
-  text('FICHA DE ANÁLISIS DE COLOR PERSONAL', hx, y, { size: SMALL, weight: 700, color: C.muted });
+  text('FICHA DE ANÁLISIS DE COLOR PERSONAL', hx, y, { size: SMALL, weight: 700, color: C.earth });
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   y += 44;
   text(fit(session.name, hw, 30, 600), hx, y, { size: 30, weight: 600 });
@@ -157,9 +163,9 @@ export function buildFicha() {
   y += 62;
   text(fromRatings ? 'Tu estación' : 'Tu estación estimada', hx, y, { size: 28, color: C.muted });
   let nameSize = 92;
-  while (nameSize > 56 && width(season.name, nameSize, 800) > hw) nameSize -= 4;
+  while (nameSize > 56 && width(season.name, nameSize, 600, true) > hw) nameSize -= 4;
   y += nameSize + 2;
-  text(season.name, hx, y, { size: nameSize, weight: 800, color: C.accent });
+  text(season.name, hx, y, { size: nameSize, weight: 600, color: C.accent, serif: true });
   y += 30;
 
   // Origen y confianza, siempre visibles
@@ -320,7 +326,16 @@ export function buildFicha() {
 
   // --- pie ---
   y += lastH + 40;
-  text(fit(`Tu color es una herramienta: úsalo cerca del rostro y deja que ${season.name} haga el resto.`, fullW, BODY, 600), M, y, { size: BODY, weight: 600, color: C.accent });
+  // Firma: las cuatro estaciones y la autoría, a la derecha de la frase final.
+  const authorW = width(AUTHOR, 26, 400, true);
+  const sign = 4 * 14 + 3 * 5 + 16 + authorW; // cuatro muestras + separación + texto
+  text(fit(`Tu color es una herramienta: úsalo cerca del rostro y deja que ${season.name} haga el resto.`, fullW - sign - 32, BODY, 600), M, y, { size: BODY, weight: 600, color: C.accent });
+  SEASON_HUES.forEach((hue, i) => { box(M + fullW - sign + i * 19, y - 22, 14, 28, 3); ctx.fillStyle = hue; ctx.fill(); });
+  ctx.font = `italic 400 26px ${SERIF}`;
+  ctx.fillStyle = C.ink;
+  ctx.textAlign = 'right';
+  ctx.fillText(AUTHOR, M + fullW, y);
+  ctx.textAlign = 'left';
   paragraph(`Guía orientativa basada en ${fromRatings ? 'tus propias valoraciones' : 'una estimación automática a partir de tu foto'}; no es un diagnóstico. La cámara y la pantalla alteran los colores: confírmalo con telas reales y luz natural.`,
     M, y + 36, fullW, { size: SMALL, color: C.muted, lineHeight: 30, maxLines: 2 });
 

@@ -233,6 +233,7 @@ let trackFailed = false; // el detector no se pudo cargar: no se reintenta hasta
 let trackIdle = true; // no hay ninguna detección en marcha
 let trackDone = false; // la foto visible ya se analizó
 let loadingShown = false; // esperando el primer resultado del teñido
+let faceSeen = false; // el detector de rostro ya respondió para la imagen actual (modo «molde»)
 
 function drapeMode() {
   return $('drape-mode-garment').checked ? 'garment' : 'mold';
@@ -241,6 +242,14 @@ function drapeMode() {
 /** Lo que drawCloth necesita para dibujar igual que en pantalla (prenda teñida o polo colocado). */
 export function currentDrape() {
   return { garment, fit };
+}
+
+/**
+ * Para la guía de encuadre: `active` solo si el detector de rostro está funcionando sobre la imagen
+ * actual (modo «molde», con conexión); `fit` es el rostro encontrado o null si no se ve ninguno.
+ */
+export function faceTracking() {
+  return { active: drapeMode() === 'mold' && faceSeen && !trackFailed, fit };
 }
 
 function setLoading(value) {
@@ -259,6 +268,7 @@ function setResult({ nextGarment = null, nextFit = null }, status) {
   $('drape-neck').disabled = Boolean(garment);
   redraw();
   if (changed || !camera.isOn) document.dispatchEvent(new CustomEvent('drape:garment'));
+  document.dispatchEvent(new CustomEvent('drape:track')); // la guía de encuadre se actualiza
 }
 
 // Suaviza el movimiento en vídeo para que el polo no tiemble.
@@ -274,6 +284,7 @@ async function track() {
   const mode = drapeMode();
   trackIdle = false;
   trackDone = false;
+  faceSeen = false;
   try {
     if (trackFailed) return;
     if (!currentSource()) {
@@ -331,9 +342,11 @@ async function track() {
           setResult({}, 'No se ve tu ropa en la imagen: aléjate un poco para que se vean los hombros, o usa el polo de molde.');
         }
       } else if (found) {
+        faceSeen = true;
         setResult({ nextFit: source.live ? blendFit(fit, found) : found },
           'Polo colocado bajo tu rostro. Si hace falta, afínalo con los controles de altura y cuello.');
       } else {
+        faceSeen = true;
         setResult({}, 'No se encontró tu rostro en la imagen: coloca el polo con los controles de altura y cuello.');
       }
       if (!source.live) return;

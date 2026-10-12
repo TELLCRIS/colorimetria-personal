@@ -3,18 +3,56 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f6f2ed">
+<meta name="theme-color" content="#f3efe8">
+<meta name="color-scheme" content="light">
+<meta name="author" content="tellcris">
 <title>Colorimetría</title>
-<link rel="icon" href="data:,">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cg transform='translate(20 35)'%3E%3Crect x='-5' y='-31' width='10' height='31' rx='3' fill='%231F3A6E' transform='rotate(42)'/%3E%3Crect x='-5' y='-31' width='10' height='31' rx='3' fill='%23A64F32' transform='rotate(14)'/%3E%3Crect x='-5' y='-31' width='10' height='31' rx='3' fill='%238FA8C8' transform='rotate(-14)'/%3E%3Crect x='-5' y='-31' width='10' height='31' rx='3' fill='%23F2A65A' transform='rotate(-42)'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/styles.css">
 <link rel="stylesheet" href="css/print.css" media="print">
 </head>
 <body data-view="loading">
 <a class="skip-link" href="#main">Saltar al contenido</a>
 
+<!-- Iconos en línea: un solo trazo, heredan el color del texto -->
+<svg class="sprite" aria-hidden="true" focusable="false" width="0" height="0">
+  <defs>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2.2l1.2-2h6.2l1.2 2h2.2A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z"/><circle cx="12" cy="13" r="3.6"/></symbol>
+    <symbol id="i-camera-off" viewBox="0 0 24 24"><path d="M9 5h6.1l1.2 2h2.2A1.5 1.5 0 0 1 20 8.5v8M17.5 19h-12A1.5 1.5 0 0 1 4 17.5v-9A1.5 1.5 0 0 1 5.5 7H7"/><path d="M3.5 3.5l17 17"/></symbol>
+    <symbol id="i-shutter" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15.5V4.5M7.5 8.5 12 4l4.5 4.5"/><path d="M4.5 14.5v3.5A1.5 1.5 0 0 0 6 19.5h12a1.5 1.5 0 0 0 1.5-1.5v-3.5"/></symbol>
+    <symbol id="i-flip" viewBox="0 0 24 24"><path d="M12 3.5v17"/><path d="M8.5 7 3.5 17h5zM15.5 7l5 10h-5z"/></symbol>
+    <symbol id="i-switch" viewBox="0 0 24 24"><path d="M19.5 9A8 8 0 0 0 5.6 7.2L4 9"/><path d="M4 4.5V9h4.5"/><path d="M4.5 15a8 8 0 0 0 13.9 1.8L20 15"/><path d="M20 19.5V15h-4.5"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l.8 12a1 1 0 0 0 1 .9h7.4a1 1 0 0 0 1-.9l.8-12M10 11v5.5M14 11v5.5"/></symbol>
+    <symbol id="i-guide" viewBox="0 0 24 24"><path d="M3.5 8V5a1.5 1.5 0 0 1 1.5-1.5h3M16 3.5h3A1.5 1.5 0 0 1 20.500 5v3M20.500 16v3a1.5 1.5 0 0 1-1.5 1.5h-3M8 20.500H5A1.5 1.5 0 0 1 3.5 19v-3"/><ellipse cx="12" cy="11.500" rx="3.700" ry="4.800"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4.500v11M7.500 11.500 12 16l4.500-4.500"/><path d="M4.500 15.500V18A1.5 1.5 0 0 0 6 19.500h12a1.5 1.5 0 0 0 1.500-1.500v-2.500"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M14.500 5.500 8 12l6.500 6.500"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4.500 19.500l.8-3.900L16 4.900a1.700 1.700 0 0 1 2.400 0l.7.7a1.700 1.700 0 0 1 0 2.400L8.400 18.700z"/><path d="M14 7l3 3"/></symbol>
+    <symbol id="i-face" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="6.500" ry="8.500"/><path d="M9.300 10.500h.01M14.700 10.500h.01M9.800 15.300c1.300 1 3.100 1 4.400 0"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.800"/><path d="M12 3v2.200M12 18.800V21M3 12h2.200M18.800 12H21M5.600 5.600l1.600 1.600M16.800 16.800l1.600 1.600M5.600 18.400l1.600-1.600M16.800 7.200l1.600-1.600"/></symbol>
+    <symbol id="i-backlight" viewBox="0 0 24 24"><rect x="4" y="3.500" width="16" height="12" rx="1.500"/><path d="M12 3.500v12M4 9.500h16"/><path d="M8.500 20.500c.4-2 1.800-3 3.500-3s3.100 1 3.500 3"/><path d="M4 20.500l16-17" stroke-width="1.800"/></symbol>
+    <symbol id="i-clear-face" viewBox="0 0 24 24"><ellipse cx="12" cy="12.500" rx="5.500" ry="7.500"/><path d="M6.700 10c1.500-.3 3-1.500 3.800-3.200 1.300 1.900 3.700 3 6.800 3.100"/><path d="M5 6.500C6.300 4 9 2.800 12 2.800S17.700 4 19 6.500"/></symbol>
+    <symbol id="i-eye-level" viewBox="0 0 24 24"><rect x="14.500" y="6" width="6" height="11" rx="1.300"/><path d="M3 11.500h9M9.500 9l2.500 2.500L9.500 14"/><path d="M3 7.500c1.200-.9 2.300-.9 3.500 0"/></symbol>
+  </defs>
+</svg>
+
 <header class="site-header">
-  <h1>Probador de colorimetría personal</h1>
-  <p class="muted">Prueba colores junto al rostro con tu cámara o una foto y registra cuáles te favorecen. Es una guía comparativa, no un diagnóstico automático de estación.</p>
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+      <g transform="translate(20 35)">
+        <rect x="-5" y="-31" width="10" height="31" rx="3" fill="#1F3A6E" transform="rotate(42)"/>
+        <rect x="-5" y="-31" width="10" height="31" rx="3" fill="#A64F32" transform="rotate(14)"/>
+        <rect x="-5" y="-31" width="10" height="31" rx="3" fill="#8FA8C8" transform="rotate(-14)"/>
+        <rect x="-5" y="-31" width="10" height="31" rx="3" fill="#F2A65A" transform="rotate(-42)"/>
+        <circle r="1.800" cy="-4" fill="#fffdfa"/>
+      </g>
+    </svg>
+    <div class="brand-text">
+      <p class="eyebrow">Muestrario de las cuatro estaciones</p>
+      <h1>Probador de colorimetría personal</h1>
+    </div>
+  </div>
+  <p class="muted lede">Prueba colores junto al rostro con tu cámara o una foto y registra cuáles te favorecen. Es una guía comparativa, no un diagnóstico automático de estación.</p>
 </header>
 
 <main id="main" tabindex="-1">
@@ -26,8 +64,9 @@
 
   <!-- Historial -->
   <section id="view-history" data-testid="history-view" aria-labelledby="history-title" hidden>
-    <div class="layout">
-      <div class="card">
+    <div class="layout history-layout">
+      <div class="card new-session-card">
+        <p class="eyebrow">Empezar</p>
         <h2>Nueva sesión</h2>
         <p class="muted">Cada sesión guarda tus valoraciones en este navegador y en este dispositivo para que puedas retomarlas o compararlas más adelante. No se envía nada a ningún servidor.</p>
         <form id="session-form" class="form" novalidate>
@@ -44,19 +83,24 @@
           </div>
           <p id="session-form-error" class="form-error" data-testid="session-form-error" role="alert" hidden></p>
           <div class="controls">
-            <button type="submit" class="primary" data-testid="new-session-button">Crear sesión</button>
+            <button type="submit" class="primary wide" data-testid="new-session-button">Crear sesión</button>
           </div>
         </form>
       </div>
 
-      <div class="card">
+      <div class="card sessions-card">
+        <p class="eyebrow">Tu archivo</p>
         <h2 id="history-title">Sesiones anteriores</h2>
+        <div class="empty-art" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
         <p id="history-status" class="muted" data-testid="history-status" aria-live="polite"></p>
         <button type="button" id="history-retry" data-testid="history-retry" hidden>Reintentar</button>
         <ul id="session-list" class="session-list" data-testid="session-list"></ul>
       </div>
 
       <div class="card backup-card">
+        <p class="eyebrow">Tus datos</p>
         <h2>Copia de seguridad</h2>
         <p class="muted">Tus sesiones, valoraciones y fotos se guardan solo en este navegador. «Guardar copia» descarga un archivo que puedes conservar o usar para pasar tus datos a otro dispositivo (por ejemplo, del ordenador al teléfono): ábrelo allí con «Restaurar copia». Restaurar añade las sesiones de la copia sin tocar las que ya tengas.</p>
         <label class="check">
@@ -77,14 +121,14 @@
 
   <!-- Sesión abierta -->
   <section id="view-session" data-testid="session-view" aria-labelledby="session-title" hidden>
-    <div class="session-header card">
+    <div class="session-header">
       <div class="session-heading">
-        <button type="button" id="back-to-history" data-testid="back-to-history" aria-label="Volver al historial">←<span class="wide-only"> Historial</span></button>
+        <button type="button" id="back-to-history" class="ghost" data-testid="back-to-history" aria-label="Volver al historial"><svg class="icon" aria-hidden="true"><use href="#i-back"/></svg><span class="wide-only">Historial</span></button>
         <div class="session-titles">
           <h2 id="session-title" data-testid="session-title"></h2>
           <p id="session-meta" class="muted" data-testid="session-meta"></p>
         </div>
-        <button type="button" id="session-edit" data-testid="session-edit-button" aria-label="Renombrar la sesión o editar sus notas"><span class="wide-only">Renombrar / notas</span><span class="narrow-only">Editar</span></button>
+        <button type="button" id="session-edit" class="ghost" data-testid="session-edit-button" aria-label="Renombrar la sesión o editar sus notas"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg><span class="wide-only">Renombrar / notas</span><span class="narrow-only sr-only">Editar</span></button>
       </div>
       <p id="session-notes-view" class="session-notes" data-testid="session-notes" hidden></p>
       <nav class="tabs" aria-label="Secciones de la sesión">
@@ -104,35 +148,59 @@
             <canvas id="photo-canvas" data-testid="photo-canvas" role="img" aria-label="Tu foto" hidden></canvas>
             <p id="stage-placeholder" class="stage-placeholder" data-testid="camera-status" aria-live="polite"></p>
             <canvas id="drape-canvas" data-testid="drape-canvas" role="img" aria-label="Tela virtual del color elegido"></canvas>
+            <!-- Guía de encuadre: solo en pantalla; no recibe toques ni entra en capturas o informes -->
+            <svg id="frame-guide" class="frame-guide" data-testid="frame-guide" data-state="idle" aria-hidden="true" focusable="false" hidden></svg>
+            <p id="guide-badge" class="guide-badge" data-testid="guide-badge" data-state="idle" aria-hidden="true" hidden><span class="guide-badge-icon"></span><span id="guide-badge-text"></span></p>
             <div id="drape-loading" class="stage-loading" data-testid="drape-loading" role="status" hidden>
               <span class="spinner" aria-hidden="true"></span>
               <span>Preparando el color sobre tu ropa… La primera vez puede tardar hasta un minuto.</span>
             </div>
           </div>
+          <div class="stage-bar">
+            <div id="drape-label" class="drape-label" data-testid="drape-label" aria-live="polite"></div>
+            <button type="button" id="guide-toggle" class="icon-btn" data-testid="guide-toggle" aria-pressed="true" title="Mostrar u ocultar la guía de encuadre"><svg class="icon" aria-hidden="true"><use href="#i-guide"/></svg><span class="sr-only">Guía de encuadre</span></button>
+            <button type="button" id="capture" class="icon-btn" data-testid="capture-button" title="Descargar una imagen PNG de lo que ves, con la tela"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg><span class="sr-only">Capturar con tela (PNG)</span></button>
+          </div>
+          <p id="guide-status" class="sr-only" data-testid="guide-status" role="status" aria-live="polite"></p>
         </div>
 
         <section class="card source-card" aria-labelledby="source-title">
-          <h2 id="source-title">1. Tu imagen: cámara o foto</h2>
+          <h2 id="source-title"><span class="step" aria-hidden="true">1</span><span class="sr-only">1. </span>Tu imagen: cámara o foto</h2>
           <p id="camera-insecure" class="notice" data-testid="camera-insecure" role="note" hidden></p>
-          <div class="controls">
-            <button type="button" id="camera-start" class="primary" data-testid="camera-start">Activar cámara</button>
-            <button type="button" id="camera-stop" data-testid="camera-stop" disabled>Apagar cámara</button>
-            <button type="button" id="camera-switch" data-testid="camera-switch" hidden>Cambiar de cámara</button>
-            <button type="button" id="camera-mirror" data-testid="camera-mirror" aria-pressed="true">Voltear vista</button>
-            <button type="button" id="photo-take" data-testid="photo-take" disabled>Tomar foto</button>
-            <button type="button" id="photo-upload" data-testid="photo-upload">Subir foto</button>
-            <button type="button" id="photo-remove" class="danger" data-testid="photo-remove" hidden>Quitar foto</button>
+          <div class="controls source-main">
+            <button type="button" id="camera-start" class="tool primary" data-testid="camera-start"><svg class="icon" aria-hidden="true"><use href="#i-camera"/></svg><span>Activar cámara</span></button>
+            <button type="button" id="camera-stop" class="tool" data-testid="camera-stop" disabled><svg class="icon" aria-hidden="true"><use href="#i-camera-off"/></svg><span>Apagar cámara</span></button>
+            <button type="button" id="photo-take" class="tool" data-testid="photo-take" disabled><svg class="icon" aria-hidden="true"><use href="#i-shutter"/></svg><span>Tomar foto</span></button>
+            <button type="button" id="photo-upload" class="tool" data-testid="photo-upload"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg><span>Subir foto</span></button>
             <input type="file" id="photo-file" class="sr-only" accept="image/*" tabindex="-1"
                    aria-label="Subir foto desde el dispositivo" data-testid="photo-file-input">
           </div>
+          <div class="controls source-more">
+            <button type="button" id="camera-mirror" class="chip-btn" data-testid="camera-mirror" aria-pressed="true"><svg class="icon" aria-hidden="true"><use href="#i-flip"/></svg><span>Voltear vista</span></button>
+            <button type="button" id="camera-switch" class="chip-btn" data-testid="camera-switch" hidden><svg class="icon" aria-hidden="true"><use href="#i-switch"/></svg><span>Cambiar de cámara</span></button>
+            <button type="button" id="photo-remove" class="chip-btn danger" data-testid="photo-remove" hidden><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg><span>Quitar foto</span></button>
+          </div>
           <p id="photo-status" class="note" data-testid="photo-status" aria-live="polite"></p>
 
+          <details id="shot-tips" class="fold tips" data-testid="shot-tips" open>
+            <summary>Consejos para una buena toma</summary>
+            <ul class="tip-list">
+              <li><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg><span><strong>Luz natural de frente.</strong> Colócate mirando a una ventana, con luz suave y sin sol directo.</span></li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-backlight"/></svg><span><strong>Sin contraluz.</strong> Que la ventana o la lámpara no queden detrás de ti.</span></li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-clear-face"/></svg><span><strong>Rostro despejado.</strong> Cabello recogido, sin gafas, gorra ni maquillaje si puedes.</span></li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-eye-level"/></svg><span><strong>Teléfono a la altura de los ojos.</strong> Recto, a un brazo de distancia, con los hombros dentro de la imagen.</span></li>
+            </ul>
+            <p class="note">La guía de encuadre sobre la imagen te indica dónde colocar el rostro, los ojos, la barbilla y los hombros. Se muestra u oculta con el botón del visor que hay bajo la imagen.</p>
+          </details>
+
           <!-- Análisis por rasgos -->
-          <div class="controls">
-            <button type="button" id="analyze-start" data-testid="analyze-start" disabled>Analizar mi rostro</button>
-            <button type="button" id="analyze-clear" data-testid="analyze-clear" hidden>Quitar estimación</button>
+          <div class="analyze-entry">
+            <div class="controls">
+              <button type="button" id="analyze-start" data-testid="analyze-start" disabled><svg class="icon" aria-hidden="true"><use href="#i-face"/></svg><span>Analizar mi rostro</span></button>
+              <button type="button" id="analyze-clear" data-testid="analyze-clear" hidden>Quitar estimación</button>
+            </div>
+            <p id="analyze-hint" class="note" data-testid="analyze-hint"></p>
           </div>
-          <p id="analyze-hint" class="note" data-testid="analyze-hint"></p>
           <section id="analyze-panel" class="analyze-panel" data-testid="analyze-panel" aria-labelledby="analyze-title" hidden>
             <h3 id="analyze-title">Analizar mi rostro</h3>
             <p id="analyze-instruction" class="analyze-instruction" data-testid="analyze-instruction" aria-live="polite"></p>
@@ -153,67 +221,41 @@
             <p class="note">La estimación es orientativa y depende mucho de la luz. De la foto solo se guardan, en este navegador, los tres colores de muestra.</p>
           </section>
 
-          <p class="note" data-testid="privacy-note">La imagen de la cámara no se envía ni se graba. Si tomas o subes una foto, se guarda solo en este navegador y en este dispositivo, y se borra al quitarla o al borrar la sesión. La cámara en vivo necesita HTTPS o localhost.</p>
+          <p class="note privacy" data-testid="privacy-note">La imagen de la cámara no se envía ni se graba. Si tomas o subes una foto, se guarda solo en este navegador y en este dispositivo, y se borra al quitarla o al borrar la sesión. La cámara en vivo necesita HTTPS o localhost.</p>
         </section>
 
         <section class="card adjust-card" aria-labelledby="adjust-title">
           <h2 id="adjust-title">Tela virtual</h2>
-          <div id="drape-label" class="drape-label" data-testid="drape-label" aria-live="polite"></div>
-          <fieldset class="drape-mode">
-            <legend>Cómo ver el color</legend>
-            <label class="check">
-              <input type="radio" name="drape-mode" id="drape-mode-mold" value="mold" data-testid="drape-mode-mold" checked>
-              <span>Polo de molde: tapa tu ropa con un color uniforme (ligero, recomendado en el móvil)</span>
-            </label>
-            <label class="check">
-              <input type="radio" name="drape-mode" id="drape-mode-garment" value="garment" data-testid="drape-mode-garment">
-              <span>Teñir mi propia ropa (más pesado; mejor con foto y ropa clara)</span>
-            </label>
-          </fieldset>
           <p id="drape-auto-status" class="note" data-testid="drape-auto-status" aria-live="polite"></p>
-          <div class="field range-field">
-            <label for="drape-height">Altura de la tela</label>
-            <input id="drape-height" type="range" min="15" max="65" step="1" value="34" data-testid="drape-height">
-          </div>
-          <div class="field range-field">
-            <label for="drape-neck">Ancho del cuello</label>
-            <input id="drape-neck" type="range" min="20" max="70" step="1" value="38" data-testid="drape-neck">
-          </div>
-          <div class="compare">
-            <label class="check">
-              <input type="checkbox" id="compare-toggle" data-testid="compare-toggle">
-              <span>Comparar dos colores lado a lado</span>
-            </label>
-            <fieldset id="compare-slots" class="slots" data-testid="compare-slots" hidden>
-              <legend>La muestra que elijas se coloca en:</legend>
-              <label class="check"><input type="radio" name="compare-slot" value="a" data-testid="compare-slot-a" checked> <span>Mitad izquierda</span></label>
-              <label class="check"><input type="radio" name="compare-slot" value="b" data-testid="compare-slot-b"> <span>Mitad derecha</span></label>
+          <details id="adjust-details" class="fold" data-testid="adjust-details">
+            <summary>Ajustar la tela: modo, altura y cuello</summary>
+            <fieldset class="drape-mode">
+              <legend>Cómo ver el color</legend>
+              <label class="check option">
+                <input type="radio" name="drape-mode" id="drape-mode-mold" value="mold" data-testid="drape-mode-mold" checked>
+                <span>Polo de molde: tapa tu ropa con un color uniforme (ligero, recomendado en el móvil)</span>
+              </label>
+              <label class="check option">
+                <input type="radio" name="drape-mode" id="drape-mode-garment" value="garment" data-testid="drape-mode-garment">
+                <span>Teñir mi propia ropa (más pesado; mejor con foto y ropa clara)</span>
+              </label>
             </fieldset>
-          </div>
-          <div class="controls">
-            <button type="button" id="capture" data-testid="capture-button">Capturar con tela (PNG)</button>
-          </div>
+            <div class="field range-field">
+              <label for="drape-height">Altura de la tela</label>
+              <input id="drape-height" type="range" min="15" max="65" step="1" value="34" data-testid="drape-height">
+            </div>
+            <div class="field range-field">
+              <label for="drape-neck">Ancho del cuello</label>
+              <input id="drape-neck" type="range" min="20" max="70" step="1" value="38" data-testid="drape-neck">
+            </div>
+          </details>
           <p class="note">La captura se descarga solo en tu dispositivo. La tela virtual es una aproximación: si puedes, sujeta además una prenda real del color elegido justo debajo del rostro. Mira la piel, las sombras bajo los ojos y cómo destacan tus ojos; no juzgues solo si te gusta el color.</p>
         </section>
       </div>
 
       <div class="try-right">
-        <section class="card my-palette" data-testid="my-palette" aria-labelledby="my-palette-title">
-          <h2 id="my-palette-title">Mi paleta</h2>
-          <p id="my-palette-empty" class="muted" data-testid="my-palette-empty">Se irá llenando sola: los colores que valores con un 60 % o más entran en «Me favorecen» y los de menos del 40 % en «Mejor evitar».</p>
-          <p id="my-palette-status" class="sr-only" data-testid="my-palette-status" aria-live="polite"></p>
-          <div id="my-palette-good-group" class="mp-group" hidden>
-            <h3 id="my-palette-good-title">Me favorecen</h3>
-            <ul id="my-palette-good" class="mp-strip" data-testid="my-palette-good" aria-labelledby="my-palette-good-title"></ul>
-          </div>
-          <div id="my-palette-avoid-group" class="mp-group" hidden>
-            <h3 id="my-palette-avoid-title">Mejor evitar</h3>
-            <ul id="my-palette-avoid" class="mp-strip" data-testid="my-palette-avoid" aria-labelledby="my-palette-avoid-title"></ul>
-          </div>
-        </section>
-
         <section class="card palette-card" aria-labelledby="palette-title">
-          <h2 id="palette-title">2. Elige un color para probar</h2>
+          <h2 id="palette-title"><span class="step" aria-hidden="true">2</span><span class="sr-only">2. </span>Elige un color para probar</h2>
           <div class="filters">
             <div class="field">
               <label for="filter-undertone">Subtono</label>
@@ -228,16 +270,29 @@
               <select id="filter-season" data-testid="filter-season"></select>
             </div>
           </div>
-          <label class="check">
-            <input type="checkbox" id="filter-suggested" data-testid="filter-suggested" disabled>
-            <span id="filter-suggested-label">Solo los colores sugeridos por el análisis del rostro</span>
-          </label>
+          <div class="palette-options">
+            <label class="check">
+              <input type="checkbox" id="filter-suggested" data-testid="filter-suggested" disabled>
+              <span id="filter-suggested-label">Solo los colores sugeridos por el análisis del rostro</span>
+            </label>
+            <div class="compare">
+              <label class="check">
+                <input type="checkbox" id="compare-toggle" data-testid="compare-toggle">
+                <span>Comparar dos colores lado a lado</span>
+              </label>
+              <fieldset id="compare-slots" class="slots" data-testid="compare-slots" hidden>
+                <legend>La muestra que elijas se coloca en:</legend>
+                <label class="check"><input type="radio" name="compare-slot" value="a" data-testid="compare-slot-a" checked> <span>Mitad izquierda</span></label>
+                <label class="check"><input type="radio" name="compare-slot" value="b" data-testid="compare-slot-b"> <span>Mitad derecha</span></label>
+              </fieldset>
+            </div>
+          </div>
           <p id="palette-status" class="muted" data-testid="palette-status" aria-live="polite"></p>
           <div id="swatches" class="swatches" data-testid="swatches"></div>
         </section>
 
         <section class="card rating-card" aria-labelledby="rating-title">
-          <h2 id="rating-title">3. Evalúa cómo te queda</h2>
+          <h2 id="rating-title"><span class="step" aria-hidden="true">3</span><span class="sr-only">3. </span>Evalúa cómo te queda</h2>
           <p class="muted rating-help">Con cada color, puntúa el efecto que observas. Usa siempre la misma luz, distancia y exposición.</p>
           <div id="rating-current" class="rating-current" data-testid="rating-current"></div>
           <form id="rating-form" class="ratings" novalidate>
@@ -262,21 +317,39 @@
             <div class="controls">
               <button type="submit" class="primary" data-testid="rating-save">Guardar puntuación</button>
               <button type="button" id="rating-save-next" data-testid="rating-save-next">Guardar y siguiente</button>
-              <button type="button" id="rating-next" data-testid="rating-next" aria-keyshortcuts="Alt+N" title="Atajo: Alt + N">Siguiente sin valorar</button>
-              <button type="button" id="rating-delete" class="danger" data-testid="rating-delete" disabled>Borrar valoración</button>
+              <button type="button" id="rating-next" class="ghost" data-testid="rating-next" aria-keyshortcuts="Alt+N" title="Atajo: Alt + N">Siguiente sin valorar</button>
+              <button type="button" id="rating-delete" class="ghost danger" data-testid="rating-delete" disabled>Borrar valoración</button>
             </div>
           </form>
           <div id="rating-result" class="result" data-testid="rating-result" aria-live="polite"></div>
         </section>
+
+        <section class="card my-palette" data-testid="my-palette" aria-labelledby="my-palette-title">
+          <p class="eyebrow">Tu muestrario</p>
+          <h2 id="my-palette-title">Mi paleta</h2>
+          <p id="my-palette-empty" class="muted" data-testid="my-palette-empty">Se irá llenando sola: los colores que valores con un 60 % o más entran en «Me favorecen» y los de menos del 40 % en «Mejor evitar».</p>
+          <p id="my-palette-status" class="sr-only" data-testid="my-palette-status" aria-live="polite"></p>
+          <div id="my-palette-good-group" class="mp-group" data-group="good" hidden>
+            <h3 id="my-palette-good-title">Me favorecen</h3>
+            <ul id="my-palette-good" class="mp-strip" data-testid="my-palette-good" aria-labelledby="my-palette-good-title"></ul>
+          </div>
+          <div id="my-palette-avoid-group" class="mp-group" data-group="avoid" hidden>
+            <h3 id="my-palette-avoid-title">Mejor evitar</h3>
+            <ul id="my-palette-avoid" class="mp-strip" data-testid="my-palette-avoid" aria-labelledby="my-palette-avoid-title"></ul>
+          </div>
+        </section>
+
       </div>
 
       <section class="card howto">
-        <h2>Cómo interpretar los resultados</h2>
-        <div class="two">
-          <div><strong>Si predominan cálidos</strong><p class="muted">Terracota, óxido, oliva, camel y chocolate pueden apuntar hacia una paleta de otoño. Si los cálidos intensos destacan, compara Otoño Cálido; si predominan los oscuros, Otoño Profundo.</p></div>
-          <div><strong>Si predominan fríos profundos</strong><p class="muted">Cobalto, fucsia frío, ciruela y negro pueden justificar comparar Invierno Profundo. Un único color ganador no basta para determinar una estación.</p></div>
-        </div>
-        <p class="footer">Importante: la cámara cambia automáticamente balance de blancos, exposición y contraste. Por eso la estación sugerida se basa en tu evaluación visual, y la estimación automática a partir de la foto es solo un punto de partida orientativo. Para una prueba más fiable, usa telas reales, luz diurna indirecta y evita maquillaje, filtros y luces de colores.</p>
+        <details class="fold" data-testid="howto-details">
+          <summary><h2>Cómo interpretar los resultados</h2></summary>
+          <div class="two">
+            <div><strong>Si predominan cálidos</strong><p class="muted">Terracota, óxido, oliva, camel y chocolate pueden apuntar hacia una paleta de otoño. Si los cálidos intensos destacan, compara Otoño Cálido; si predominan los oscuros, Otoño Profundo.</p></div>
+            <div><strong>Si predominan fríos profundos</strong><p class="muted">Cobalto, fucsia frío, ciruela y negro pueden justificar comparar Invierno Profundo. Un único color ganador no basta para determinar una estación.</p></div>
+          </div>
+          <p class="footer">Importante: la cámara cambia automáticamente balance de blancos, exposición y contraste. Por eso la estación sugerida se basa en tu evaluación visual, y la estimación automática a partir de la foto es solo un punto de partida orientativo. Para una prueba más fiable, usa telas reales, luz diurna indirecta y evita maquillaje, filtros y luces de colores.</p>
+        </details>
       </section>
     </div>
 
@@ -284,19 +357,15 @@
     <div id="panel-results" class="panel" data-testid="panel-results" hidden>
       <div class="layout">
         <div class="column">
-          <section class="card" aria-labelledby="suggested-title">
+          <section class="card season-card" aria-labelledby="suggested-title">
             <p class="eyebrow">Según tus valoraciones</p>
             <h2 id="suggested-title">Estación sugerida</h2>
             <div id="season-suggested" class="result" data-testid="season-suggested" aria-live="polite"></div>
             <ul id="analysis-messages" class="messages" data-testid="analysis-messages"></ul>
             <p class="note">Los resultados reflejan tus observaciones, no una clasificación automática. Compara varios colores de cada familia; no concluyas por el color con la puntuación máxima si solo has probado pocos.</p>
           </section>
-          <section class="card auto-card" aria-labelledby="auto-title">
-            <p class="eyebrow">Según la foto · orientativa</p>
-            <h2 id="auto-title">Estimación automática</h2>
-            <div id="auto-estimate" class="auto-estimate" data-testid="auto-estimate" aria-live="polite"></div>
-          </section>
           <section class="card" aria-labelledby="palettes-title">
+            <p class="eyebrow">Tu carta de color</p>
             <h2 id="palettes-title">Colores recomendados y a evitar</h2>
             <h3>Recomendados</h3>
             <ul id="recommended-list" class="chips" data-testid="recommended-list"></ul>
@@ -305,19 +374,27 @@
             <p id="avoid-more" class="muted" data-testid="avoid-more" hidden></p>
           </section>
           <section class="card" aria-labelledby="axes-title">
+            <p class="eyebrow">Subtono · profundidad · intensidad</p>
             <h2 id="axes-title">Tus ejes</h2>
             <div id="axes" class="axes" data-testid="axes"></div>
           </section>
+          <section class="card auto-card" aria-labelledby="auto-title">
+            <p class="eyebrow">Según la foto · orientativa</p>
+            <h2 id="auto-title">Estimación automática</h2>
+            <div id="auto-estimate" class="auto-estimate" data-testid="auto-estimate" aria-live="polite"></div>
+          </section>
         </div>
         <div class="column">
+          <section class="card" aria-labelledby="seasons-title">
+            <p class="eyebrow">Afinidad por estación</p>
+            <h2 id="seasons-title">Las 12 estaciones</h2>
+            <ol id="season-scores" class="season-scores" data-testid="season-scores"></ol>
+          </section>
           <section class="card" aria-labelledby="ranking-title">
+            <p class="eyebrow">De más a menos favorecedor</p>
             <h2 id="ranking-title">Ranking de colores valorados</h2>
             <p id="ranking-empty" class="muted" data-testid="ranking-empty">Aún no has evaluado colores.</p>
             <ol id="ranking-list" class="ranking" data-testid="ranking-list"></ol>
-          </section>
-          <section class="card" aria-labelledby="seasons-title">
-            <h2 id="seasons-title">Las 12 estaciones</h2>
-            <ol id="season-scores" class="season-scores" data-testid="season-scores"></ol>
           </section>
         </div>
       </div>
@@ -338,6 +415,7 @@
 
 <footer class="site-footer">
   <p>Uso personal: tus sesiones, valoraciones y foto se guardan solo en este navegador y en este dispositivo. No se envía nada a ningún servidor; guarda una copia de seguridad si quieres conservarlas.</p>
+  <p class="credit" data-testid="author-credit"><span class="credit-rule" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Probador de colorimetría personal · <span class="by">by tellcris</span></p>
 </footer>
 
 <!-- Diálogo de confirmación -->
@@ -346,7 +424,7 @@
   <p id="confirm-message" data-testid="confirm-message"></p>
   <div class="controls">
     <button type="button" id="confirm-cancel" data-testid="confirm-cancel">Cancelar</button>
-    <button type="button" id="confirm-accept" class="danger" data-testid="confirm-accept">Borrar</button>
+    <button type="button" id="confirm-accept" class="danger solid" data-testid="confirm-accept">Borrar</button>
   </div>
 </dialog>
 
